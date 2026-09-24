@@ -7,6 +7,8 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { SubtitleFeed } from "@/components/SubtitleFeed";
 import { LANGS, isLang, type Lang } from "@/lib/langs";
+import { useWakeLock } from "@/lib/useWakeLock";
+import { ConnectionBadge } from "@/components/ConnectionBadge";
 
 const SIZES = ["text-lg", "text-2xl", "text-4xl"];
 
@@ -17,6 +19,7 @@ export default function AudiencePage({ params }: { params: Promise<{ id: string 
   const [lang, setLang] = useState<Lang | null>(null);
   const [size, setSize] = useState(1);
   const [contrast, setContrast] = useState(false);
+  useWakeLock();
 
   // Remember the viewer's preferences on this device.
   useEffect(() => {
@@ -45,6 +48,7 @@ export default function AudiencePage({ params }: { params: Promise<{ id: string 
 
   return (
     <main className={`flex h-dvh flex-col ${contrast ? "bg-black text-yellow-300" : ""}`}>
+      <ConnectionBadge />
       <header className="border-b border-neutral-800 px-4 py-3">
         <div className="flex items-center justify-between gap-2">
           <Link href="/" className="text-sm text-neutral-400">←</Link>
