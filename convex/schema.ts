@@ -1,0 +1,72 @@
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+
+// Languages supported for input and output subtitles.
+export const langValidator = v.union(v.literal("es"), v.literal("en"), v.literal("pt"));
+
+export const statusValidator = v.union(
+  v.literal("idle"), // created, no console connected yet
+  v.literal("live"), // console streaming audio to Gemini
+  v.literal("reconnecting"), // Gemini connection dropped, console retrying
+  v.literal("paused"),
+  v.literal("error"),
+  v.literal("ended"),
+);
+
+export default defineSchema({
+  // One row per talk. Low-churn data only (high-churn metrics live in sessionStats).
+  sessions: defineTable({
+    title: v.string(),
+    room: v.string(),
+    speaker: v.optional(v.string()),
+    sourceLang: langValidator,
+    targetLangs: v.array(langValidator), // translations to produce (never includes sourceLang)
+    status: statusValidator,
+    startedAt: v.optional(v.number()), // wall clock when audio started (ms)
+    endedAt: v.optional(v.number()),
+    nextSeq: v.number(), // counter for final source segments
+    consoleId: v.optional(v.string()), // random id of the console tab that owns the session
+  }).index("by_status", ["status"]),
+
+  // Immutable, finalized subtitle lines. Source lines and their translations share `seq`.
+  segments: defineTable({
+    sessionId: v.id("sessions"),
+    lang: langValidator,
+    seq: v.number(),
+    text: v.string(),
+    startMs: v.number(), // offset from session start
+    endMs: v.number(),
+    isSource: v.boolean(),
+    latencyMs: v.optional(v.number()), // end of speech -> text available
+  })
+    .index("by_sessionId_and_lang_and_seq", ["sessionId", "lang", "seq"])
+    .index("by_sessionId_and_seq", ["sessionId", "seq"]),
+
+  // The in-progress (not yet final) line per session+language. Overwritten constantly.
+  partials: defineTable({
+    sessionId: v.id("sessions"),
+    lang: langValidator,
+    text: v.string(),
+    updatedAt: v.number(),
+  }).index("by_sessionId_and_lang", ["sessionId", "lang"]),
+
+  // High-churn operational metrics for the production dashboard.
+  sessionStats: defineTable({
+    sessionId: v.id("sessions"),
+    lastHeartbeatAt: v.number(),
+    segmentCount: v.number(),
+    latencySumMs: v.number(),
+    latencyCount: v.number(),
+    errorCount: v.number(),
+    reconnectCount: v.number(),
+    lastError: v.optional(v.string()),
+    lastErrorAt: v.optional(v.number()),
+  }).index("by_sessionId", ["sessionId"]),
+
+  // Event-wide glossary: technical terms and proper names.
+  glossary: defineTable({
+    term: v.string(),
+    // Optional forced translations, e.g. { es: "despliegue" }. Empty = keep term as-is.
+    translations: v.optional(v.record(v.string(), v.string())),
+  }),
+});
