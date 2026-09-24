@@ -50,6 +50,8 @@ export class LiveTranslateStream {
   private stopped = false;
   private reconnecting = false;
   private pending: string[] = [];
+  private lastTextAt = 0;
+  private stopRequestedAt = 0;
   private inSeg: LineSegmenter | null;
   private outSeg: LineSegmenter;
 
@@ -75,6 +77,17 @@ export class LiveTranslateStream {
   }
 
   async stop() {
+    // Let Gemini finish the words still in flight (the translation trails the voice
+    // by ~1-2 s). The model only advances while it receives audio, so feed it silence
+    // until the text stream has been quiet for 2 s (max 6 s).
+    const silence = arrayBufferToBase64(new ArrayBuffer(3200));
+    const deadline = Date.now() + 6000;
+    const quietSince = () => Date.now() - Math.max(this.lastTextAt, this.stopRequestedAt);
+    this.stopRequestedAt = Date.now();
+    while (this.session && Date.now() < deadline && quietSince() < 2000) {
+      this.send(silence);
+      await sleep(100);
+    }
     this.stopped = true;
     this.inSeg?.flush("stop");
     this.outSeg.flush("stop");
@@ -164,8 +177,14 @@ export class LiveTranslateStream {
 
     const c = msg.serverContent;
     if (!c) return;
-    if (c.inputTranscription?.text) this.inSeg?.append(c.inputTranscription.text);
-    if (c.outputTranscription?.text) this.outSeg.append(c.outputTranscription.text);
+    if (c.inputTranscription?.text) {
+      this.lastTextAt = Date.now();
+      this.inSeg?.append(c.inputTranscription.text);
+    }
+    if (c.outputTranscription?.text) {
+      this.lastTextAt = Date.now();
+      this.outSeg.append(c.outputTranscription.text);
+    }
     if (c.turnComplete) {
       this.inSeg?.flush("turn");
       this.outSeg.flush("turn");

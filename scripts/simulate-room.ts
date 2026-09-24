@@ -83,7 +83,7 @@ async function simulateRoom(spec: string, roomIndex: number) {
   const CHUNK = 3200; // 100 ms of 16 kHz 16-bit audio
   let sent = 0;
   do {
-    for (let i = 0; i < pcm.length + CHUNK * 20; i += CHUNK) {
+    for (let i = 0; i < pcm.length + CHUNK * 5; i += CHUNK) {
       const chunk = i < pcm.length ? pcm.subarray(i, i + CHUNK) : silence;
       clock.observe(rms(chunk));
       if (process.env.DROP && ++sent === 60) {
