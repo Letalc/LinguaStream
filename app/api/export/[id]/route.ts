@@ -27,7 +27,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
   if (!session) return new Response("Session not found", { status: 404 });
 
   const body = format === "txt" ? toTxt(lines) : format === "vtt" ? toVtt(lines) : toSrt(lines);
-  const slug = session.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "session";
+  const slug = session.title.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "session";
   const types = { srt: "application/x-subrip", vtt: "text/vtt", txt: "text/plain" };
   return new Response(body, {
     headers: {

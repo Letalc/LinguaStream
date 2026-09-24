@@ -6,9 +6,15 @@ import Link from "next/link";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { AdminGate } from "@/components/AdminGate";
-import { LiveTranscriber, type TranscriberStatus } from "@/lib/live-transcriber";
+import {
+  LiveTranslateStream,
+  SpeechClock,
+  arrayBufferToBase64,
+  type LineEvents,
+  type StreamStatus,
+} from "@/lib/live-transcriber";
 import { startCapture, listInputDevices } from "@/lib/audio-capture";
-import { langLabel } from "@/lib/langs";
+import { langLabel, type Lang } from "@/lib/langs";
 import { SubtitleFeed } from "@/components/SubtitleFeed";
 
 export default function ConsolePage({ params }: { params: Promise<{ id: string }> }) {
@@ -33,25 +39,25 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
   const setStatus = useMutation(api.sessions.setStatus);
   const heartbeat = useMutation(api.sessions.heartbeat);
   const setPartial = useMutation(api.segments.setPartial);
-  const commitSource = useMutation(api.segments.commitSource);
+  const commitLine = useMutation(api.segments.commitLine);
   const createToken = useAction(api.gemini.createLiveToken);
 
   // A random id per tab: the backend lets only one console own a session.
   const [consoleId] = useState(() => crypto.randomUUID());
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [source, setSource] = useState<string>("tab");
-  const [state, setState] = useState<TranscriberStatus | "idle" | "paused">("idle");
+  const [state, setState] = useState<StreamStatus | "idle" | "paused">("idle");
   const [lastError, setLastError] = useState<string | null>(null);
   const [level, setLevel] = useState(0);
   const [inputLabel, setInputLabel] = useState("");
   const [debug, setDebug] = useState<string[]>([]);
   const [showDebug, setShowDebug] = useState(false);
 
-  const transcriber = useRef<LiveTranscriber | null>(null);
+  const streams = useRef<LiveTranslateStream[]>([]);
   const capture = useRef<{ stop: () => void } | null>(null);
   const paused = useRef(false);
-  const partialTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const latestPartial = useRef("");
+  const partialTimers = useRef<Partial<Record<Lang, ReturnType<typeof setTimeout>>>>({});
+  const latestPartial = useRef<Partial<Record<Lang, string>>>({});
 
   useEffect(() => {
     listInputDevices().then(setDevices).catch(() => {});
@@ -68,26 +74,37 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
   }, [running, adminKey, sessionId, consoleId, heartbeat]);
 
   const pushPartial = useCallback(
-    (text: string) => {
-      // Throttle partial writes to ~4/s: plenty for reading, cheap for the backend.
-      latestPartial.current = text;
-      if (partialTimer.current) return;
-      partialTimer.current = setTimeout(() => {
-        partialTimer.current = null;
-        if (!session) return;
-        setPartial({
-          key: adminKey,
-          sessionId,
-          consoleId,
-          lang: session.sourceLang,
-          text: latestPartial.current,
-        }).catch(() => {});
+    (lang: Lang, text: string) => {
+      // Throttle partial writes to ~4/s per language: plenty for reading, cheap for the backend.
+      latestPartial.current[lang] = text;
+      if (partialTimers.current[lang]) return;
+      partialTimers.current[lang] = setTimeout(() => {
+        delete partialTimers.current[lang];
+        setPartial({ key: adminKey, sessionId, consoleId, lang, text: latestPartial.current[lang] ?? "" }).catch(() => {});
       }, 250);
     },
-    [adminKey, sessionId, consoleId, session, setPartial],
+    [adminKey, sessionId, consoleId, setPartial],
   );
 
-  const start = async (force = false) => {
+  const lineEvents = (lang: Lang): LineEvents => ({
+    onPartial: (text) => pushPartial(lang, text),
+    onCommit: (line) => {
+      commitLine({
+        key: adminKey,
+        sessionId,
+        consoleId,
+        lang,
+        text: line.text,
+        startMs: line.startMs,
+        endMs: line.endMs,
+        latencyMs: line.latencyMs,
+        remainingPartial: line.remaining,
+      }).catch((e) => setLastError(String(e)));
+    },
+  });
+
+  const start = async (force = false): Promise<void> => {
+    if (!session) return;
     setLastError(null);
     const res = await claim({ key: adminKey, sessionId, consoleId, force });
     if (!res.ok) {
@@ -95,42 +112,56 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
       return;
     }
     setState("connecting");
-    const t = new LiveTranscriber({
-      getToken: () => createToken({ key: adminKey, sessionId }),
-      onPartial: pushPartial,
-      onCommit: (line) => {
-        commitSource({
-          key: adminKey,
-          sessionId,
-          consoleId,
-          text: line.text,
-          startMs: line.startMs,
-          endMs: line.endMs,
-          latencyMs: line.latencyMs,
-          remainingPartial: line.remaining,
-        }).catch((e) => setLastError(String(e)));
-      },
-      onStatus: (s, err) => {
-        setState(s);
-        if (err) setLastError(err);
-        const backendStatus = s === "connecting" ? "live" : s === "stopped" ? "ended" : s;
-        setStatus({ key: adminKey, sessionId, consoleId, status: backendStatus, error: err }).catch(() => {});
-      },
-      onDebug: (msg) =>
-        setDebug((d) => [JSON.stringify(msg).slice(0, 300), ...d].slice(0, 60)),
-    });
-    transcriber.current = t;
+    const clock = new SpeechClock();
+    const targets = session.targetLangs.length ? session.targetLangs : [session.sourceLang === "es" ? "en" : "es"] as Lang[];
+    const statuses: StreamStatus[] = targets.map(() => "connecting");
+
+    // One Live translate connection per target language; the first one also
+    // provides the original-language subtitles (its input transcription).
+    streams.current = targets.map(
+      (target, i) =>
+        new LiveTranslateStream({
+          clock,
+          getToken: () => createToken({ key: adminKey, sessionId, targetLang: target }),
+          input: i === 0 ? lineEvents(session.sourceLang) : undefined,
+          output: lineEvents(target),
+          onStatus: (s, err) => {
+            statuses[i] = s;
+            // The room is as healthy as its worst connection.
+            const overall: StreamStatus = statuses.includes("error")
+              ? "error"
+              : statuses.includes("reconnecting")
+                ? "reconnecting"
+                : statuses.includes("connecting")
+                  ? "connecting"
+                  : statuses.every((x) => x === "stopped")
+                    ? "stopped"
+                    : "live";
+            setState(overall);
+            if (err) setLastError(`[${target}] ${err}`);
+            const backend = overall === "connecting" ? "live" : overall === "stopped" ? "ended" : overall;
+            setStatus({ key: adminKey, sessionId, consoleId, status: backend, error: err ? `[${target}] ${err}` : undefined }).catch(() => {});
+          },
+          onDebug: (msg) => {
+            if (msg.serverContent) setDebug((d) => [`[${target}] ${JSON.stringify(msg.serverContent).slice(0, 240)}`, ...d].slice(0, 60));
+          },
+        }),
+    );
+
     try {
       const cap = await startCapture(
         source === "tab" ? { kind: "tab" } : { kind: "mic", deviceId: source || undefined },
         (pcm, rms) => {
           setLevel(rms);
-          if (!paused.current) t.pushAudio(pcm, rms);
+          clock.observe(rms);
+          if (paused.current) return;
+          const b64 = arrayBufferToBase64(pcm);
+          for (const st of streams.current) st.pushAudio(b64);
         },
       );
       capture.current = cap;
       setInputLabel(cap.label);
-      await t.start();
+      await Promise.all(streams.current.map((st) => st.start()));
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setLastError(msg);
@@ -143,8 +174,8 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
   const stop = async () => {
     capture.current?.stop();
     capture.current = null;
-    await transcriber.current?.stop();
-    transcriber.current = null;
+    await Promise.all(streams.current.map((st) => st.stop()));
+    streams.current = [];
     setLevel(0);
   };
 
@@ -209,7 +240,7 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
                 Terminar
               </button>
               <button
-                onClick={() => transcriber.current?.simulateDrop()}
+                onClick={() => streams.current[0]?.simulateDrop()}
                 className="rounded-lg border border-neutral-800 px-3 py-2 text-xs text-neutral-400"
                 title="Cierra la conexión con Gemini para probar la reconexión automática"
               >

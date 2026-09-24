@@ -9,7 +9,7 @@ import { requireAdmin } from "./lib/auth";
 
 // Model names are configurable via Convex env vars so a conference can switch models
 // without touching code (`npx convex env set GEMINI_LIVE_MODEL ...`).
-const LIVE_MODEL = () => process.env.GEMINI_LIVE_MODEL ?? "gemini-live-2.5-flash-preview";
+const LIVE_MODEL = () => process.env.GEMINI_LIVE_MODEL ?? "gemini-3.5-live-translate-preview";
 const TEXT_MODEL = () => process.env.GEMINI_TEXT_MODEL ?? "gemini-flash-lite-latest";
 
 const LANG_NAMES: Record<string, string> = { es: "Spanish", en: "English", pt: "Portuguese" };
@@ -23,35 +23,37 @@ function client() {
 /**
  * Mints a short-lived Gemini token for the room console, so the browser can stream
  * audio straight to the Live API without ever seeing the real API key.
- * Returns the model + config the console must use to connect.
+ * One token (and one Live connection) per target language.
  */
 export const createLiveToken = action({
-  args: { key: v.string(), sessionId: v.id("sessions") },
+  args: {
+    key: v.string(),
+    sessionId: v.id("sessions"),
+    targetLang: v.union(v.literal("es"), v.literal("en"), v.literal("pt")),
+  },
   handler: async (
     ctx,
-    { key, sessionId },
+    { key, sessionId, targetLang },
   ): Promise<{ token: string; model: string; config: Record<string, unknown> }> => {
     requireAdmin(key);
-    const session: Doc<"sessions"> | null = await ctx.runQuery(internal.sessions.getInternal, { sessionId });
+    const session: Doc<"sessions"> | null = await ctx.runQuery(internal.sessions.getInternal, {
+      sessionId,
+    });
     if (!session) throw new ConvexError("Session not found");
 
-    const glossary: { term: string }[] = await ctx.runQuery(internal.glossary.listInternal, {});
-    const terms = glossary.map((g) => g.term);
+    const glossary: { term: string; translations?: Record<string, string> }[] =
+      await ctx.runQuery(internal.glossary.listInternal, {});
 
     const model = LIVE_MODEL();
     const config: Record<string, unknown> = {
       responseModalities: [Modality.TEXT],
-      // The model's own replies are ignored; we only want the input transcription.
-      systemInstruction:
-        "You are a silent speech transcription engine for a live conference talk. " +
-        "Never answer, comment or translate. If you must respond, respond with a single period.",
-      inputAudioTranscription: {
-        languageCodes: [session.sourceLang],
-        ...(terms.length ? { customVocabulary: terms } : {}),
-      },
-      // Long talks: compress context and allow resuming after the server's periodic GoAway.
+      inputAudioTranscription: glossary.length
+        ? { customVocabulary: glossary.map((g) => g.term) }
+        : {},
+      translationConfig: { targetLanguageCode: targetLang },
+      // Long talks: server-side context compression + resumable sessions.
       contextWindowCompression: { slidingWindow: {} },
-      sessionResumption: {},
+      ...(glossary.length ? { systemInstruction: glossaryInstruction(glossary, targetLang) } : {}),
     };
 
     const now = Date.now();
@@ -67,6 +69,19 @@ export const createLiveToken = action({
     return { token: token.name, model, config };
   },
 });
+
+// Tested: the live-translate model follows a glossary given as system instruction
+// (e.g. it writes "Nerdearla" instead of "Nerdierla").
+function glossaryInstruction(
+  glossary: { term: string; translations?: Record<string, string> }[],
+  targetLang: string,
+) {
+  const lines = glossary.map((g) => {
+    const forced = g.translations?.[targetLang];
+    return forced ? `- ${g.term} → ${forced}` : `- ${g.term} (proper noun / technical term, keep as-is)`;
+  });
+  return `Glossary for this tech conference. Spell and translate these terms exactly like this:\n${lines.join("\n")}`;
+}
 
 /** Translates one finalized source line into one target language. */
 export const translateSegment = internalAction({

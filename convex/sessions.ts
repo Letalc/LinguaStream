@@ -164,9 +164,9 @@ export const setStatus = mutation({
       await ctx.db.patch("sessionStats", stats._id, {
         lastHeartbeatAt: Date.now(),
         ...(status === "reconnecting" ? { reconnectCount: stats.reconnectCount + 1 } : {}),
-        ...(error
-          ? { errorCount: stats.errorCount + 1, lastError: error.slice(0, 500), lastErrorAt: Date.now() }
-          : {}),
+        // Reconnects are logged but only real failures count as errors.
+        ...(error ? { lastError: error.slice(0, 500), lastErrorAt: Date.now() } : {}),
+        ...(status === "error" ? { errorCount: stats.errorCount + 1 } : {}),
       });
     }
     // Clear in-progress lines when the talk ends.

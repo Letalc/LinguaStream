@@ -1,6 +1,5 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
-import { internal } from "./_generated/api";
 import { langValidator } from "./schema";
 import { requireAdmin } from "./lib/auth";
 import { getStats, mustOwn } from "./sessions";
@@ -33,12 +32,14 @@ export const setPartial = mutation({
   },
 });
 
-// Commit a finished line in the talk's original language, then fan out translations.
-export const commitSource = mutation({
+// Commit a finished subtitle line for one language (original or translation).
+// Each language has its own line sequence: translations stream independently.
+export const commitLine = mutation({
   args: {
     key: v.string(),
     sessionId: v.id("sessions"),
     consoleId: v.string(),
+    lang: langValidator,
     text: v.string(),
     startMs: v.number(),
     endMs: v.number(),
@@ -50,17 +51,24 @@ export const commitSource = mutation({
     const session = await mustOwn(ctx, args.sessionId, args.consoleId);
     const text = args.text.trim();
     if (!text) return null;
+    const isSource = args.lang === session.sourceLang;
 
-    const seq = session.nextSeq;
-    await ctx.db.patch("sessions", session._id, { nextSeq: seq + 1 });
-    const segmentId = await ctx.db.insert("segments", {
+    const last = await ctx.db
+      .query("segments")
+      .withIndex("by_sessionId_and_lang_and_seq", (q) =>
+        q.eq("sessionId", session._id).eq("lang", args.lang),
+      )
+      .order("desc")
+      .first();
+    const seq = (last?.seq ?? -1) + 1;
+    await ctx.db.insert("segments", {
       sessionId: session._id,
-      lang: session.sourceLang,
+      lang: args.lang,
       seq,
       text,
       startMs: args.startMs,
       endMs: args.endMs,
-      isSource: true,
+      isSource,
       latencyMs: args.latencyMs,
     });
 
@@ -68,7 +76,7 @@ export const commitSource = mutation({
     const partial = await ctx.db
       .query("partials")
       .withIndex("by_sessionId_and_lang", (q) =>
-        q.eq("sessionId", session._id).eq("lang", session.sourceLang),
+        q.eq("sessionId", session._id).eq("lang", args.lang),
       )
       .unique();
     if (partial) {
@@ -81,22 +89,15 @@ export const commitSource = mutation({
     const stats = await getStats(ctx, session._id);
     if (stats) {
       await ctx.db.patch("sessionStats", stats._id, {
-        segmentCount: stats.segmentCount + 1,
         lastHeartbeatAt: Date.now(),
-        ...(args.latencyMs !== undefined
+        ...(isSource ? { segmentCount: stats.segmentCount + 1 } : {}),
+        // Dashboard latency tracks translations: that is what the audience waits for.
+        ...(args.latencyMs !== undefined && !isSource
           ? {
               latencySumMs: stats.latencySumMs + args.latencyMs,
               latencyCount: stats.latencyCount + 1,
             }
           : {}),
-      });
-    }
-
-    for (const lang of session.targetLangs) {
-      await ctx.scheduler.runAfter(0, internal.gemini.translateSegment, {
-        segmentId,
-        targetLang: lang,
-        committedAt: Date.now(),
       });
     }
     return seq;

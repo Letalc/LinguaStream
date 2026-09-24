@@ -3,88 +3,89 @@
 import { GoogleGenAI, type LiveServerMessage, type Session } from "@google/genai";
 
 /**
- * Streams PCM audio to the Gemini Live API and turns the incremental input
- * transcription into subtitle lines:
- *  - `onPartial(text)`   → the line currently being spoken (changes constantly)
- *  - `onCommit(line)`    → a finished line (sentence end, long pause, or too long)
+ * One Gemini Live *translate* connection for one target language.
  *
- * Handles the Live API's connection lifecycle: session resumption handles,
- * server GoAway notices and unexpected drops all trigger a transparent reconnect.
+ * The model streams two text channels at the same time:
+ *   - inputTranscription  → what the speaker says (original language)
+ *   - outputTranscription → the simultaneous translation
+ * Both arrive as small deltas (a few words each). A `LineSegmenter` per channel
+ * turns those deltas into subtitle lines (partial + committed).
+ *
+ * The class also owns the connection lifecycle: session-resumption handles,
+ * server GoAway notices and unexpected drops trigger a transparent reconnect,
+ * buffering ~5 s of audio meanwhile.
  */
 
 export type LiveTokenResponse = { token: string; model: string; config: Record<string, unknown> };
 
 export type CommittedLine = {
   text: string;
-  startMs: number; // relative to transcriber start
+  startMs: number; // relative to console start
   endMs: number;
-  latencyMs?: number; // end of speech → committed (only measurable after a pause)
+  latencyMs?: number; // end of speech → line committed (measured after pauses)
   remaining: string; // text already heard that belongs to the next line
 };
 
-export type TranscriberStatus = "connecting" | "live" | "reconnecting" | "stopped" | "error";
+export type StreamStatus = "connecting" | "live" | "reconnecting" | "stopped" | "error";
 
-type Callbacks = {
-  getToken: () => Promise<LiveTokenResponse>;
+export type LineEvents = {
   onPartial: (text: string) => void;
   onCommit: (line: CommittedLine) => void;
-  onStatus: (status: TranscriberStatus, error?: string) => void;
-  onDebug?: (msg: LiveServerMessage) => void;
 };
 
-// Segmentation tuning (subtitles read best at ~6-18 words per line).
-const MIN_WORDS = 3;
-const MAX_WORDS = 20;
-const SILENCE_COMMIT_MS = 1200;
-const MAX_BUFFERED_CHUNKS = 50; // ~5 s of audio kept while reconnecting
-const VOICE_RMS = 0.015; // rough voice-activity threshold for latency measurement
+type Options = {
+  getToken: () => Promise<LiveTokenResponse>;
+  input?: LineEvents; // original-language lines (only one stream per room needs this)
+  output: LineEvents; // translated lines
+  onStatus: (status: StreamStatus, error?: string) => void;
+  onDebug?: (msg: LiveServerMessage) => void;
+  clock: SpeechClock;
+};
 
-export class LiveTranscriber {
+const MAX_BUFFERED_CHUNKS = 50; // ~5 s of 100 ms audio chunks kept while reconnecting
+
+export class LiveTranslateStream {
   private session: Session | null = null;
   private resumeHandle: string | undefined;
   private stopped = false;
   private reconnecting = false;
-  private pending: string[] = []; // base64 audio chunks waiting for a connection
+  private pending: string[] = [];
+  private inSeg: LineSegmenter | null;
+  private outSeg: LineSegmenter;
 
-  private buffer = ""; // uncommitted transcription text
-  private bufferStartedAt = 0;
-  private lastTextAt = 0;
-  private lastVoiceAt = 0;
-  private silenceTimer: ReturnType<typeof setTimeout> | null = null;
-  private readonly t0 = Date.now();
-
-  constructor(private cb: Callbacks) {}
+  constructor(private opts: Options) {
+    this.inSeg = opts.input ? new LineSegmenter(opts.input, opts.clock) : null;
+    this.outSeg = new LineSegmenter(opts.output, opts.clock);
+  }
 
   async start() {
-    this.cb.onStatus("connecting");
+    this.opts.onStatus("connecting");
     await this.connect();
   }
 
-  /** Called by the audio pipeline for every 100 ms PCM chunk. */
-  pushAudio(pcm: ArrayBuffer, rms: number) {
+  /** Base64 PCM chunk (16 kHz, 16-bit mono, 100 ms). */
+  pushAudio(base64: string) {
     if (this.stopped) return;
-    if (rms > VOICE_RMS) this.lastVoiceAt = Date.now();
-    const data = arrayBufferToBase64(pcm);
     if (!this.session || this.reconnecting) {
-      this.pending.push(data);
+      this.pending.push(base64);
       if (this.pending.length > MAX_BUFFERED_CHUNKS) this.pending.shift();
       return;
     }
-    this.send(data);
+    this.send(base64);
   }
 
   async stop() {
     this.stopped = true;
-    this.flush("stop");
-    if (this.silenceTimer) clearTimeout(this.silenceTimer);
+    this.inSeg?.flush("stop");
+    this.outSeg.flush("stop");
     try {
       this.session?.close();
     } catch {}
     this.session = null;
-    this.cb.onStatus("stopped");
+    this.opts.onStatus("stopped");
   }
 
-  /** Forces a reconnect — used by the console's "simulate drop" button for demos. */
+  /** Drops the connection on purpose — used by the console's "simulate drop" demo button. */
   simulateDrop() {
     try {
       this.session?.close();
@@ -94,34 +95,25 @@ export class LiveTranscriber {
   // ---------- connection ----------
 
   private async connect() {
-    const { token, model, config } = await this.cb.getToken();
+    const { token, model, config } = await this.opts.getToken();
     const ai = new GoogleGenAI({ apiKey: token, httpOptions: { apiVersion: "v1alpha" } });
-
-    const sessionConfig = {
-      ...config,
-      sessionResumption: { handle: this.resumeHandle },
-    };
 
     this.session = await ai.live.connect({
       model,
-      config: sessionConfig,
+      config: { ...config, sessionResumption: { handle: this.resumeHandle } },
       callbacks: {
-        onopen: () => {},
         onmessage: (msg) => this.onMessage(msg),
-        onerror: (e) => {
-          console.error("[live] error", e);
-        },
+        onerror: (e) => console.error("[live] error", e),
         onclose: (e) => {
           console.warn("[live] closed", e?.code, e?.reason);
           this.session = null;
-          if (!this.stopped) void this.reconnect(e?.reason || `closed (${e?.code})`);
+          if (!this.stopped) void this.reconnect(e?.reason || `connection closed (${e?.code})`);
         },
       },
     });
 
     this.reconnecting = false;
-    this.cb.onStatus("live");
-    // Flush audio captured while we were offline.
+    this.opts.onStatus("live");
     const queued = this.pending;
     this.pending = [];
     for (const chunk of queued) this.send(chunk);
@@ -130,7 +122,7 @@ export class LiveTranscriber {
   private async reconnect(reason: string) {
     if (this.reconnecting || this.stopped) return;
     this.reconnecting = true;
-    this.cb.onStatus("reconnecting", reason);
+    this.opts.onStatus("reconnecting", reason);
     let attempt = 0;
     while (!this.stopped) {
       try {
@@ -140,9 +132,9 @@ export class LiveTranscriber {
         attempt++;
         const msg = e instanceof Error ? e.message : String(e);
         console.error("[live] reconnect failed", attempt, msg);
-        // A stale resumption handle can make every attempt fail: drop it after 2 tries.
+        // A stale resumption handle can make every attempt fail: start fresh after 2 tries.
         if (attempt >= 2) this.resumeHandle = undefined;
-        this.cb.onStatus("reconnecting", msg);
+        this.opts.onStatus("reconnecting", msg);
         await sleep(Math.min(8000, 500 * 2 ** attempt));
       }
     }
@@ -156,51 +148,84 @@ export class LiveTranscriber {
     }
   }
 
-  // ---------- server messages ----------
-
   private onMessage(msg: LiveServerMessage) {
-    this.cb.onDebug?.(msg);
+    this.opts.onDebug?.(msg);
 
-    if (msg.sessionResumptionUpdate?.resumable && msg.sessionResumptionUpdate.newHandle) {
-      this.resumeHandle = msg.sessionResumptionUpdate.newHandle;
-    }
+    const upd = msg.sessionResumptionUpdate;
+    if (upd?.resumable && upd.newHandle) this.resumeHandle = upd.newHandle;
+
     if (msg.goAway) {
-      // The server will close soon: reconnect proactively with the resume handle.
+      // The server will close soon: reconnect now, resuming with the latest handle.
       try {
         this.session?.close();
       } catch {}
       return;
     }
 
-    const content = msg.serverContent;
-    if (!content) return;
-
-    const piece = content.inputTranscription?.text;
-    if (piece) this.appendText(piece);
-    if (content.inputTranscription?.finished || content.turnComplete) this.flush("turn");
+    const c = msg.serverContent;
+    if (!c) return;
+    if (c.inputTranscription?.text) this.inSeg?.append(c.inputTranscription.text);
+    if (c.outputTranscription?.text) this.outSeg.append(c.outputTranscription.text);
+    if (c.turnComplete) {
+      this.inSeg?.flush("turn");
+      this.outSeg.flush("turn");
+    }
   }
+}
 
-  // ---------- segmentation ----------
+/**
+ * Tracks when the speaker last made sound (from the audio RMS), so we can measure
+ * "end of speech → subtitle on screen" latency after each pause.
+ */
+export class SpeechClock {
+  readonly t0 = Date.now();
+  lastVoiceAt = 0;
+  observe(rms: number) {
+    if (rms > 0.015) this.lastVoiceAt = Date.now();
+  }
+}
 
-  private appendText(piece: string) {
+// ---------- segmentation ----------
+
+const MIN_WORDS = 3;
+const MAX_WORDS = 18; // subtitles read best at ~6-18 words per line
+const SILENCE_COMMIT_MS = 1500;
+
+/** Turns a stream of text deltas into subtitle lines. */
+export class LineSegmenter {
+  private buffer = "";
+  private bufferStartedAt = 0;
+  private lastTextAt = 0;
+  private timer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor(
+    private events: LineEvents,
+    private clock: SpeechClock,
+  ) {}
+
+  append(delta: string) {
     const now = Date.now();
     if (!this.buffer.trim()) this.bufferStartedAt = now;
-    this.buffer += piece;
+    this.buffer = normalize(this.buffer + delta);
     this.lastTextAt = now;
     this.cutLines();
-    this.cb.onPartial(this.buffer.trim());
-
-    if (this.silenceTimer) clearTimeout(this.silenceTimer);
-    this.silenceTimer = setTimeout(() => this.flush("silence"), SILENCE_COMMIT_MS);
+    this.events.onPartial(this.buffer.trim());
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = setTimeout(() => this.flush("silence"), SILENCE_COMMIT_MS);
   }
 
-  /** Commit complete sentences (or over-long runs) while the speaker keeps talking. */
+  flush(reason: "turn" | "silence" | "stop") {
+    if (this.timer) clearTimeout(this.timer);
+    this.timer = null;
+    if (this.buffer.trim()) this.commit(this.buffer, "", reason);
+  }
+
   private cutLines() {
     for (;;) {
       const text = this.buffer;
-      const sentenceEnd = findSentenceEnd(text);
-      if (sentenceEnd > 0 && wordCount(text.slice(0, sentenceEnd)) >= MIN_WORDS) {
-        this.commit(text.slice(0, sentenceEnd), text.slice(sentenceEnd), "sentence");
+      const end = findSentenceEnd(text);
+      if (end > 0 && wordCount(text.slice(0, end)) >= MIN_WORDS) {
+        this.commit(text.slice(0, end), text.slice(end), "sentence");
         continue;
       }
       if (wordCount(text) > MAX_WORDS) {
@@ -212,28 +237,23 @@ export class LiveTranscriber {
     }
   }
 
-  private flush(reason: "turn" | "silence" | "stop") {
-    if (this.silenceTimer) clearTimeout(this.silenceTimer);
-    if (this.buffer.trim()) this.commit(this.buffer, "", reason);
-  }
-
   private commit(text: string, remaining: string, reason: string) {
     const now = Date.now();
     const clean = text.replace(/\s+/g, " ").trim();
-    this.buffer = remaining;
+    this.buffer = remaining.trimStart();
     if (!clean) return;
-    // After a pause we know when the voice stopped, so latency is measurable.
-    const paused = reason === "turn" || reason === "silence" || reason === "stop";
-    const latencyMs =
-      paused && this.lastVoiceAt > 0 && now - this.lastVoiceAt < 10_000
-        ? Math.max(0, now - this.lastVoiceAt - (reason === "silence" ? SILENCE_COMMIT_MS : 0))
-        : undefined;
-    this.cb.onCommit({
+    const { t0, lastVoiceAt } = this.clock;
+    // Latency = how long after the speaker stopped talking the last words reached us.
+    // Only measurable after a pause (while someone talks, "end of speech" is unknown).
+    const paused = reason !== "sentence" && reason !== "length";
+    const lag = this.lastTextAt - lastVoiceAt;
+    const latencyMs = paused && lastVoiceAt > 0 && lag >= 0 && lag < 10_000 ? lag : undefined;
+    this.events.onCommit({
       text: clean,
-      startMs: Math.max(0, this.bufferStartedAt - this.t0 - 1500),
-      endMs: Math.max(0, this.lastTextAt - this.t0),
+      startMs: Math.max(0, this.bufferStartedAt - t0 - 1500), // text trails the voice by ~1.5 s
+      endMs: Math.max(0, this.lastTextAt - t0),
       latencyMs,
-      remaining: remaining.trim(),
+      remaining: this.buffer.trim(),
     });
     this.bufferStartedAt = now;
   }
@@ -241,35 +261,38 @@ export class LiveTranscriber {
 
 // ---------- helpers ----------
 
+/** Fix spacing glitches like "Nerdearla.Today" coming from concatenated deltas. */
+function normalize(s: string) {
+  return s.replace(/([.!?…])(?=[A-ZÁÉÍÓÚÑ¿¡])/g, "$1 ").replace(/\s{2,}/g, " ");
+}
+
 function wordCount(s: string) {
   return s.trim().split(/\s+/).filter(Boolean).length;
 }
 
-/** Index right after the first sentence terminator followed by whitespace (or end). */
 function findSentenceEnd(text: string): number {
   const m = /[.!?…](?=\s)/.exec(text);
   return m ? m.index + 1 : -1;
 }
 
-/** Cut an over-long line at the last comma/semicolon, else after MAX_WORDS-4 words. */
+/** Cut an over-long line at the last comma/semicolon, else at MAX_WORDS - 4 words. */
 function findSoftCut(text: string): number {
-  const words = text.split(/(\s+)/);
+  const parts = text.split(/(\s+)/);
   let pos = 0;
-  let lastComma = -1;
   let count = 0;
-  for (const w of words) {
+  let lastComma = -1;
+  for (const w of parts) {
     pos += w.length;
-    if (w.trim()) {
-      count++;
-      if (/[,;:]$/.test(w) && count >= MIN_WORDS) lastComma = pos;
-      if (count >= MAX_WORDS - 4 && lastComma < 0) return pos;
-      if (count >= MAX_WORDS) break;
-    }
+    if (!w.trim()) continue;
+    count++;
+    if (/[,;:]$/.test(w) && count >= MIN_WORDS) lastComma = pos;
+    if (count >= MAX_WORDS - 4 && lastComma < 0) return pos;
+    if (count >= MAX_WORDS) break;
   }
   return lastComma > 0 ? lastComma : pos;
 }
 
-function arrayBufferToBase64(buf: ArrayBuffer): string {
+export function arrayBufferToBase64(buf: ArrayBuffer): string {
   const bytes = new Uint8Array(buf);
   let binary = "";
   for (let i = 0; i < bytes.length; i += 0x8000) {
