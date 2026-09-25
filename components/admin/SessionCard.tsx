@@ -17,7 +17,7 @@ const CHIP_TONE = {
 };
 
 export function SessionCard({ s, now, adminKey }: { s: DashboardSession; now: number; adminKey: string }) {
-  const viewerCount = useQuery(api.presence.count, { roomId: s._id });
+  const viewerCount = useQuery(api.presence.count, { key: adminKey, roomId: s._id });
   const chip = statusChip(s, now);
   const danger = chip.tone === "danger";
   const running = s.status === "live" || s.status === "reconnecting" || s.status === "paused";
@@ -52,7 +52,7 @@ export function SessionCard({ s, now, adminKey }: { s: DashboardSession; now: nu
           warn={(s.stats?.avgLatencyMs ?? 0) > 4000}
         />
         <Metric label="Líneas" value={String(s.stats?.segmentCount ?? 0)} />
-        <Metric label="Audiencia" value={viewerCount != null ? String(viewerCount) : "—"} />
+        <Metric label="Navegadores" value={viewerCount ? `${viewerCount.count}${viewerCount.capped ? "+" : ""}` : "—"} />
         <Metric
           label="Errores"
           value={`${s.stats?.errorCount ?? 0}${s.stats?.reconnectCount ? ` · ${s.stats.reconnectCount} rec.` : ""}`}
