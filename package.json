@@ -10,6 +10,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@convex-dev/presence": "^0.4.0",
     "@google/genai": "^2.24.0",
     "convex": "^1.46.0",
     "lucide-react": "^1.48.0",

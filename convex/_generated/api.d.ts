@@ -16,6 +16,7 @@ import type * as glossary from "../glossary.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as segments from "../segments.js";
 import type * as sessions from "../sessions.js";
+import type * as presence from "../presence.js";
 
 import type {
   ApiFromModules,
@@ -32,6 +33,7 @@ declare const fullApi: ApiFromModules<{
   "lib/auth": typeof lib_auth;
   segments: typeof segments;
   sessions: typeof sessions;
+  presence: typeof presence;
 }>;
 
 /**
