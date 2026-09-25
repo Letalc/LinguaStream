@@ -21,7 +21,7 @@ const btn = "rounded-sm border border-line px-3 py-2 font-mono text-[11px] upper
  * Gemini extracts a terms dictionary, the host reviews it and saves the selection.
  */
 export function GlossaryImport({ adminKey, onClose }: { adminKey: string; onClose: () => void }) {
-  const sessions = useQuery(api.sessions.list);
+  const sessions = useQuery(api.sessions.list, {});
   const generateUploadUrl = useMutation(api.glossary.generateUploadUrl);
   const extract = useAction(api.gemini.extractGlossary);
   const addMany = useMutation(api.glossary.addMany);

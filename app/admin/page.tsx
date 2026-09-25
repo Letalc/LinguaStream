@@ -1,6 +1,7 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
+import type { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/convex/_generated/api";
@@ -10,7 +11,7 @@ import { EndedArchive } from "@/components/admin/EndedArchive";
 import { AlertsFeed, AlertToasts } from "@/components/admin/Alerts";
 import { GlossaryPanel, NewSessionPanel } from "@/components/admin/SidePanels";
 import { BUCKETS, bucketOf, type Bucket } from "@/components/admin/health";
-import { Bell, BellOff, ExternalLink, LogOut } from "lucide-react";
+import { Bell, BellOff, ExternalLink, LogOut, Calendar, Plus, Check } from "lucide-react";
 import { Dot } from "@/components/ui/Dot";
 
 export default function AdminPage() {
@@ -22,7 +23,12 @@ export default function AdminPage() {
 }
 
 function CommandCenter({ adminKey, logout, role }: { adminKey: string; logout: () => void; role: Role }) {
-  const sessions = useQuery(api.sessions.dashboard);
+  const [conferenceId, setConferenceId] = useState<Id<"conferences"> | null | undefined>(undefined);
+  const [creatingConf, setCreatingConf] = useState(false);
+  const [newConfName, setNewConfName] = useState("");
+  const conferences = useQuery(api.conferences.listForAdmin, { key: adminKey });
+  const createConf = useMutation(api.conferences.create);
+  const sessions = useQuery(api.sessions.dashboard, { conferenceId });
   const [filter, setFilter] = useState<Bucket | "all">("all");
   const [sound, setSound] = useState(true);
   const [archiveOpen, setArchiveOpen] = useState(false);
@@ -92,6 +98,87 @@ function CommandCenter({ adminKey, logout, role }: { adminKey: string; logout: (
           </button>
         </div>
       </header>
+
+      {/* Conference filter bar */}
+      <div className="flex flex-wrap items-center gap-2 border-b border-line/60 bg-black/20 px-6 py-3 lg:px-10">
+        <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-500 mr-2">
+          <Calendar className="h-3 w-3" /> Evento:
+        </span>
+        <button
+          onClick={() => setConferenceId(undefined)}
+          className={`rounded px-2.5 py-1 font-mono text-[11px] transition ${
+            conferenceId === undefined
+              ? "bg-accent/20 text-accent border border-accent/40"
+              : "text-neutral-400 hover:text-white"
+          }`}
+        >
+          Todos
+        </button>
+        <button
+          onClick={() => setConferenceId(null)}
+          className={`rounded px-2.5 py-1 font-mono text-[11px] transition ${
+            conferenceId === null
+              ? "bg-accent/20 text-accent border border-accent/40"
+              : "text-neutral-400 hover:text-white"
+          }`}
+        >
+          Sin evento
+        </button>
+        {conferences?.map((conf) => (
+          <button
+            key={conf._id}
+            onClick={() => setConferenceId(conf._id)}
+            className={`rounded px-2.5 py-1 font-mono text-[11px] transition ${
+              conferenceId === conf._id
+                ? "bg-accent/20 text-accent border border-accent/40"
+                : "text-neutral-400 hover:text-white"
+            }`}
+          >
+            {conf.name} {conf.status === "archived" && <span className="opacity-50">(Archivado)</span>}
+          </button>
+        ))}
+
+        {role === "admin" && (
+          creatingConf ? (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!newConfName.trim()) return;
+                try {
+                  const id = await createConf({ key: adminKey, name: newConfName.trim() });
+                  setConferenceId(id);
+                  setNewConfName("");
+                  setCreatingConf(false);
+                } catch (err) {
+                  alert(err instanceof Error ? err.message : String(err));
+                }
+              }}
+              className="flex items-center gap-1 ml-auto"
+            >
+              <input
+                autoFocus
+                placeholder="Nombre del evento…"
+                value={newConfName}
+                onChange={(e) => setNewConfName(e.target.value)}
+                className="rounded border border-line bg-black/60 px-2 py-0.5 font-mono text-xs focus:border-accent focus:outline-none"
+              />
+              <button type="submit" className="rounded bg-accent/20 border border-accent/40 px-2 py-0.5 font-mono text-xs text-accent">
+                Crear
+              </button>
+              <button type="button" onClick={() => setCreatingConf(false)} className="px-1 text-xs text-neutral-500 hover:text-white">
+                ✕
+              </button>
+            </form>
+          ) : (
+            <button
+              onClick={() => setCreatingConf(true)}
+              className="ml-auto flex items-center gap-1 rounded border border-dashed border-line px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-neutral-400 hover:border-neutral-500 hover:text-white"
+            >
+              <Plus className="h-3 w-3" /> Nuevo Evento
+            </button>
+          )
+        )}
+      </div>
 
       {/* Funnel filter */}
       <nav className="flex flex-wrap gap-2 px-6 pt-6 lg:px-10">

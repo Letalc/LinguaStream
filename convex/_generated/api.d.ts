@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as conferences from "../conferences.js";
 import type * as crons from "../crons.js";
 import type * as events from "../events.js";
 import type * as gemini from "../gemini.js";
@@ -23,6 +24,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  conferences: typeof conferences;
   crons: typeof crons;
   events: typeof events;
   gemini: typeof gemini;

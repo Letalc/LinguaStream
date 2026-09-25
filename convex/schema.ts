@@ -14,8 +14,16 @@ export const statusValidator = v.union(
 );
 
 export default defineSchema({
+  // Conference metadata is separate from the operational `events` alert log.
+  conferences: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    status: v.union(v.literal("active"), v.literal("archived")),
+  }).index("by_status", ["status"]),
+
   // One row per talk. Low-churn data only (high-churn metrics live in sessionStats).
   sessions: defineTable({
+    conferenceId: v.optional(v.id("conferences")), // existing sessions stay unassigned
     title: v.string(),
     room: v.string(),
     speaker: v.optional(v.string()),
@@ -31,7 +39,9 @@ export default defineSchema({
     interpreterUrl: v.optional(v.string()), // live video of a human sign-language (LSA) interpreter
   })
     .index("by_status", ["status"])
-    .index("by_code", ["code"]),
+    .index("by_code", ["code"])
+    .index("by_conferenceId", ["conferenceId"])
+    .index("by_conferenceId_and_status", ["conferenceId", "status"]),
 
   // Immutable, finalized subtitle lines. Source lines and their translations share `seq`.
   segments: defineTable({
@@ -86,12 +96,15 @@ export default defineSchema({
     message: v.optional(v.string()),
   }),
 
-  // Event-wide glossary: technical terms and proper names.
-  // Glossary: event-wide terms (no sessionId) + per-talk terms (e.g. extracted from its slides).
+  // Conference terms have conferenceId only; per-talk terms have sessionId only.
+  // Legacy terms with neither id apply exclusively to unassigned sessions.
   glossary: defineTable({
     term: v.string(),
     // Optional forced translations, e.g. { es: "despliegue" }. Empty = keep term as-is.
     translations: v.optional(v.record(v.string(), v.string())),
     sessionId: v.optional(v.id("sessions")),
-  }).index("by_sessionId", ["sessionId"]),
+    conferenceId: v.optional(v.id("conferences")),
+  })
+    .index("by_sessionId", ["sessionId"])
+    .index("by_conferenceId_and_sessionId", ["conferenceId", "sessionId"]),
 });

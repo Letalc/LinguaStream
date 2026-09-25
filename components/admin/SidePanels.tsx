@@ -91,7 +91,7 @@ export function NewSessionPanel({ adminKey }: { adminKey: string }) {
 }
 
 export function GlossaryPanel({ adminKey }: { adminKey: string }) {
-  const terms = useQuery(api.glossary.list);
+  const terms = useQuery(api.glossary.list, { key: adminKey });
   const add = useMutation(api.glossary.add);
   const remove = useMutation(api.glossary.remove);
   const [term, setTerm] = useState("");
