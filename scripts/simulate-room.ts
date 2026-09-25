@@ -46,8 +46,8 @@ async function simulateRoom(spec: string, roomIndex: number) {
   console.log(`${tag} session ${sessionId}: ${sourceLang} → ${targetLangs.join(", ")}`);
 
   const events = (lang: Lang): LineEvents => ({
-    onPartial: (text) =>
-      void convex.mutation(api.segments.setPartial, { key: KEY, sessionId, consoleId, lang, text }).catch(() => {}),
+    onPartial: (text, receivedAt) =>
+      void convex.mutation(api.segments.setPartial, { key: KEY, sessionId, consoleId, lang, text, receivedAt }).catch(() => {}),
     onCommit: (l) => {
       console.log(`${tag} [${lang}] ${l.text}${l.latencyMs !== undefined ? `  (${l.latencyMs} ms)` : ""}`);
       void convex.mutation(api.segments.commitLine, {

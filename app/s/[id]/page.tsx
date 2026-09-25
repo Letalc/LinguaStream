@@ -9,6 +9,7 @@ import { SubtitleFeed } from "@/components/SubtitleFeed";
 import { LANGS, isLang, type Lang } from "@/lib/langs";
 import { useWakeLock } from "@/lib/useWakeLock";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
+import { LagIndicator } from "@/components/LagIndicator";
 
 const SIZES = ["text-lg", "text-2xl", "text-4xl"];
 
@@ -81,14 +82,21 @@ export default function AudiencePage({ params }: { params: Promise<{ id: string 
         </div>
       </header>
       <SubtitleFeed sessionId={sessionId} lang={current} className={`flex-1 px-4 py-4 ${SIZES[size]}`} limit={100} />
-      {session.status === "ended" && (
-        <footer className="flex gap-4 border-t border-neutral-800 px-4 py-3 text-sm">
-          <span className="text-neutral-400">Descargar:</span>
-          {(["txt", "srt", "vtt"] as const).map((f) => (
-            <a key={f} className="underline" href={`/api/export/${sessionId}?lang=${current}&format=${f}`}>{f.toUpperCase()}</a>
-          ))}
-        </footer>
-      )}
+      <footer className="flex items-center gap-4 border-t border-neutral-800 px-4 py-2 text-sm">
+        {session.status === "ended" ? (
+          <>
+            <span className="text-neutral-400">Descargar:</span>
+            {(["txt", "srt", "vtt"] as const).map((f) => (
+              <a key={f} className="underline" href={`/api/export/${sessionId}?lang=${current}&format=${f}`}>{f.toUpperCase()}</a>
+            ))}
+          </>
+        ) : (
+          <span className="text-xs text-neutral-500">Subtítulos generados por IA en tiempo real</span>
+        )}
+        <span className="ml-auto">
+          <LagIndicator sessionId={sessionId} lang={current} limit={100} />
+        </span>
+      </footer>
     </main>
   );
 }

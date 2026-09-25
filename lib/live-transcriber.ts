@@ -29,7 +29,7 @@ export type CommittedLine = {
 export type StreamStatus = "connecting" | "live" | "reconnecting" | "stopped" | "error";
 
 export type LineEvents = {
-  onPartial: (text: string) => void;
+  onPartial: (text: string, receivedAt: number) => void;
   onCommit: (line: CommittedLine) => void;
 };
 
@@ -65,9 +65,15 @@ export class LiveTranslateStream {
     await this.connect();
   }
 
-  /** Base64 PCM chunk (16 kHz, 16-bit mono, 100 ms). */
+  /**
+   * Base64 PCM chunk (16 kHz, 16-bit mono, 100 ms).
+   * Also drives the segmenters' clock: audio callbacks keep firing every 100 ms even
+   * when the console tab is hidden, while browsers throttle hidden-tab timers to
+   * 1/s (or 1/min after 5 min). So nothing time-critical relies on setTimeout.
+   */
   pushAudio(base64: string) {
     if (this.stopped) return;
+    this.tick();
     if (!this.session || this.reconnecting) {
       this.pending.push(base64);
       if (this.pending.length > MAX_BUFFERED_CHUNKS) this.pending.shift();
@@ -86,6 +92,7 @@ export class LiveTranslateStream {
     this.stopRequestedAt = Date.now();
     while (this.session && Date.now() < deadline && quietSince() < 2000) {
       this.send(silence);
+      this.tick();
       await sleep(100);
     }
     this.stopped = true;
@@ -96,6 +103,12 @@ export class LiveTranslateStream {
     } catch {}
     this.session = null;
     this.opts.onStatus("stopped");
+  }
+
+  /** Emits pending partials and commits lines after a silence. Called every audio chunk. */
+  tick(now = Date.now()) {
+    this.inSeg?.tick(now);
+    this.outSeg.tick(now);
   }
 
   /** Drops the connection on purpose — used by the console's "simulate drop" demo button. */
@@ -208,14 +221,19 @@ export class SpeechClock {
 
 const MIN_WORDS = 3;
 const MAX_WORDS = 18; // subtitles read best at ~6-18 words per line
-const SILENCE_COMMIT_MS = 1500;
+const SILENCE_COMMIT_MS = 1800; // no new words for this long → close the line (partials are already visible, so this adds no viewer delay)
+const PARTIAL_EVERY_MS = 150; // max rate of in-progress updates sent to viewers
 
-/** Turns a stream of text deltas into subtitle lines. */
+/**
+ * Turns a stream of text deltas into subtitle lines. Timer-free: `tick()` is driven by
+ * the audio pipeline, so it keeps working in a hidden (throttled) browser tab.
+ */
 export class LineSegmenter {
   private buffer = "";
   private bufferStartedAt = 0;
   private lastTextAt = 0;
-  private timer: ReturnType<typeof setTimeout> | null = null;
+  private lastPartialSentAt = 0;
+  private partialDirty = false;
 
   constructor(
     private events: LineEvents,
@@ -228,15 +246,24 @@ export class LineSegmenter {
     this.buffer = normalize(this.buffer + delta);
     this.lastTextAt = now;
     this.cutLines();
-    this.events.onPartial(this.buffer.trim());
-    if (this.timer) clearTimeout(this.timer);
-    this.timer = setTimeout(() => this.flush("silence"), SILENCE_COMMIT_MS);
+    this.partialDirty = true;
+    this.maybeSendPartial(now);
+  }
+
+  tick(now: number) {
+    this.maybeSendPartial(now);
+    if (this.buffer.trim() && now - this.lastTextAt >= SILENCE_COMMIT_MS) this.flush("silence");
   }
 
   flush(reason: "turn" | "silence" | "stop") {
-    if (this.timer) clearTimeout(this.timer);
-    this.timer = null;
     if (this.buffer.trim()) this.commit(this.buffer, "", reason);
+  }
+
+  private maybeSendPartial(now: number) {
+    if (!this.partialDirty || now - this.lastPartialSentAt < PARTIAL_EVERY_MS) return;
+    this.partialDirty = false;
+    this.lastPartialSentAt = now;
+    this.events.onPartial(this.buffer.trim(), this.lastTextAt);
   }
 
   private cutLines() {
@@ -260,6 +287,8 @@ export class LineSegmenter {
     const now = Date.now();
     const clean = text.replace(/\s+/g, " ").trim();
     this.buffer = remaining.trimStart();
+    // The commit mutation already sets the partial to `remaining`.
+    this.partialDirty = false;
     if (!clean) return;
     const { t0, lastVoiceAt } = this.clock;
     // Latency = how long after the speaker stopped talking the last words reached us.

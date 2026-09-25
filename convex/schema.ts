@@ -48,6 +48,7 @@ export default defineSchema({
     lang: langValidator,
     text: v.string(),
     updatedAt: v.number(),
+    receivedAt: v.optional(v.number()), // console clock when Gemini produced the text
   }).index("by_sessionId_and_lang", ["sessionId", "lang"]),
 
   // High-churn operational metrics for the production dashboard.

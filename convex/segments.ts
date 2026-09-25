@@ -15,8 +15,9 @@ export const setPartial = mutation({
     consoleId: v.string(),
     lang: langValidator,
     text: v.string(),
+    receivedAt: v.optional(v.number()), // console clock when Gemini produced this text
   },
-  handler: async (ctx, { key, sessionId, consoleId, lang, text }) => {
+  handler: async (ctx, { key, sessionId, consoleId, lang, text, receivedAt }) => {
     requireAdmin(key);
     await mustOwn(ctx, sessionId, consoleId);
     const existing = await ctx.db
@@ -24,9 +25,9 @@ export const setPartial = mutation({
       .withIndex("by_sessionId_and_lang", (q) => q.eq("sessionId", sessionId).eq("lang", lang))
       .unique();
     if (existing) {
-      await ctx.db.patch("partials", existing._id, { text, updatedAt: Date.now() });
+      await ctx.db.patch("partials", existing._id, { text, updatedAt: Date.now(), receivedAt });
     } else {
-      await ctx.db.insert("partials", { sessionId, lang, text, updatedAt: Date.now() });
+      await ctx.db.insert("partials", { sessionId, lang, text, updatedAt: Date.now(), receivedAt });
     }
     return null;
   },
@@ -187,6 +188,7 @@ export const feed = query({
     return {
       lines: lines.reverse().map((l) => ({ seq: l.seq, text: l.text, startMs: l.startMs })),
       partial: partial?.text ?? "",
+      partialAt: partial?.receivedAt ?? partial?.updatedAt ?? null,
     };
   },
 });
