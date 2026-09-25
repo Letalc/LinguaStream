@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { AdminGate, type Role } from "@/components/AdminGate";
 import { SessionCard } from "@/components/admin/SessionCard";
+import { EndedArchive } from "@/components/admin/EndedArchive";
 import { AlertsFeed, AlertToasts } from "@/components/admin/Alerts";
 import { GlossaryPanel, NewSessionPanel } from "@/components/admin/SidePanels";
 import { BUCKETS, bucketOf, type Bucket } from "@/components/admin/health";
@@ -24,6 +25,7 @@ function CommandCenter({ adminKey, logout, role }: { adminKey: string; logout: (
   const sessions = useQuery(api.sessions.dashboard);
   const [filter, setFilter] = useState<Bucket | "all">("all");
   const [sound, setSound] = useState(true);
+  const [archiveOpen, setArchiveOpen] = useState(false);
   // Queries must not read the clock, so the page ticks `now` itself (drives "no signal").
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -98,7 +100,10 @@ function CommandCenter({ adminKey, logout, role }: { adminKey: string; logout: (
           <FunnelTab
             key={b.id}
             active={filter === b.id}
-            onClick={() => setFilter(b.id)}
+            onClick={() => {
+              setFilter(b.id);
+              if (b.id === "ended") setArchiveOpen(true);
+            }}
             label={b.label}
             count={grouped[b.id].length}
             tone={b.id === "problem" && grouped.problem.length > 0 ? "danger" : b.id === "live" ? "live" : undefined}
@@ -110,7 +115,7 @@ function CommandCenter({ adminKey, logout, role }: { adminKey: string; logout: (
         <main className="space-y-8">
           {sessions === undefined && <p className="font-mono text-xs tracking-widest text-neutral-500">CARGANDO…</p>}
           {visible.map((b) =>
-            grouped[b.id].length === 0 ? null : (
+            grouped[b.id].length === 0 || b.id === "ended" ? null : (
               <section key={b.id}>
                 <h2
                   className={`mb-3 font-mono text-[11px] uppercase tracking-[0.3em] ${
@@ -126,6 +131,14 @@ function CommandCenter({ adminKey, logout, role }: { adminKey: string; logout: (
                 </div>
               </section>
             ),
+          )}
+          {(filter === "all" || filter === "ended") && grouped.ended.length > 0 && (
+            <EndedArchive
+              sessions={grouped.ended}
+              adminKey={adminKey}
+              open={archiveOpen}
+              onToggle={() => setArchiveOpen((x) => !x)}
+            />
           )}
           {sessions && sessions.length === 0 && (
             <p className="text-neutral-500">No hay sesiones. Creá la primera desde el panel de la derecha →</p>

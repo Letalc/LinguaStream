@@ -105,7 +105,7 @@ function LastLine({ sessionId, lang, waiting }: { sessionId: DashboardSession["_
   );
 }
 
-function DeleteButton({ adminKey, id }: { adminKey: string; id: DashboardSession["_id"] }) {
+export function DeleteButton({ adminKey, id }: { adminKey: string; id: DashboardSession["_id"] }) {
   const remove = useMutation(api.sessions.remove);
   const [armed, setArmed] = useState(false);
   const [err, setErr] = useState<string | null>(null);
