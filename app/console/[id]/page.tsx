@@ -19,6 +19,7 @@ import { SubtitleFeed } from "@/components/SubtitleFeed";
 import { ShareDialog } from "@/components/ShareDialog";
 import { ArrowLeft, Hand, QrCode, TriangleAlert } from "@/components/ui/NeonIcon";
 import { compatibleRandomUUID } from "@/lib/crypto-compat";
+import { openAdmin } from "@/lib/windows";
 
 export default function ConsolePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -185,6 +186,14 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
 
   useEffect(() => () => void stop(), []);
 
+  // Closing or reloading this window would cut the talk: ask first while live.
+  useEffect(() => {
+    if (!running) return;
+    const guard = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", guard);
+    return () => window.removeEventListener("beforeunload", guard);
+  }, [running]);
+
   if (session === undefined) return <div className="p-8 text-neutral-400">Cargando…</div>;
   if (session === null) return <div className="p-8">Sesión no encontrada.</div>;
 
@@ -196,7 +205,18 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
     <main className={`mx-auto w-full px-4 py-6 ${langs.length >= 3 ? "max-w-7xl" : "max-w-5xl"}`}>
       <div className="flex items-center justify-between gap-4">
         <div>
-          <Link href="/admin" className="inline-flex items-center gap-1 text-sm text-neutral-400 hover:text-white"><ArrowLeft className="h-4 w-4" /> Panel</Link>
+          <Link
+            href="/admin"
+            onClick={(e) => {
+              // While live, never leave this page: show the dashboard in its own tab instead.
+              if (!running) return;
+              e.preventDefault();
+              openAdmin();
+            }}
+            className="inline-flex items-center gap-1 text-sm text-neutral-400 hover:text-white"
+          >
+            <ArrowLeft className="h-4 w-4" /> Panel
+          </Link>
           <h1 className="mt-1 text-2xl font-semibold">{session.title}</h1>
           <p className="text-sm text-neutral-400">
             {session.room} · {session.speaker ?? "—"} · origen {langLabel(session.sourceLang)}
