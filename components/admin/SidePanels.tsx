@@ -5,7 +5,8 @@ import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { LANGS, type Lang } from "@/lib/langs";
 import { GlossaryImport } from "./GlossaryImport";
-import { Plus, Sparkles, X } from "lucide-react";
+import { Plus } from "lucide-react";
+import { Sparkles, X } from "@/components/ui/NeonIcon";
 
 const input =
   "w-full rounded-sm border border-line bg-black/40 px-3 py-2.5 font-mono text-sm placeholder:text-neutral-600 focus:border-accent focus:outline-none";

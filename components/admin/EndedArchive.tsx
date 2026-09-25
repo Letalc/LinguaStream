@@ -1,6 +1,7 @@
 "use client";
 
-import { Archive, ChevronDown, Download, FolderClosed, FolderOpen, Search } from "lucide-react";
+import { Search } from "lucide-react";
+import { Archive, ChevronDown, Download, FolderClosed, FolderOpen } from "@/components/ui/NeonIcon";
 import { useMemo, useState } from "react";
 import { LangBadge } from "@/components/ui/LangBadge";
 import { DeleteButton } from "./SessionCard";

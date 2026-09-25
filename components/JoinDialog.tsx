@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Ear } from "lucide-react";
+import { Check, Ear } from "@/components/ui/NeonIcon";
 import { useState } from "react";
 import { LangBadge } from "@/components/ui/LangBadge";
 import { LANGS, type Lang } from "@/lib/langs";

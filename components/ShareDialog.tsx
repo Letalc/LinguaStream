@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { QrCode } from "./QrCode";
 import { roomUrl } from "@/lib/publicUrl";
-import { Check, Copy, Presentation, QrCode as QrCodeIcon, X } from "lucide-react";
+import { Check, Copy, Presentation, QrCode as QrCodeIcon, X } from "@/components/ui/NeonIcon";
 
 /** Host tool: room code + QR + link to hand to the audience. */
 export function ShareDialog({

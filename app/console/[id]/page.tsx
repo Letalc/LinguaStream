@@ -17,7 +17,7 @@ import { startCapture, listInputDevices } from "@/lib/audio-capture";
 import { langLabel, type Lang } from "@/lib/langs";
 import { SubtitleFeed } from "@/components/SubtitleFeed";
 import { ShareDialog } from "@/components/ShareDialog";
-import { ArrowLeft, Hand, QrCode, TriangleAlert } from "lucide-react";
+import { ArrowLeft, Hand, QrCode, TriangleAlert } from "@/components/ui/NeonIcon";
 
 export default function ConsolePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
