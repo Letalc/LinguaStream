@@ -103,11 +103,18 @@ Al escanear el QR, el público elige su idioma o **Accesible · personas sordas 
 - Video del **intérprete de lengua de señas (LSA)**: la consola de sala acepta un link (YouTube u otro embebible) y el público lo ve arriba de los subtítulos. Es un intérprete humano provisto por el evento; no se genera con IA.
 - **Vibración** al empezar, pausar y terminar la charla (Android; Safari en iOS no permite vibrar desde la web).
 
+## Operar varias salas
+
+- Desde el panel, **Consola** abre cada sala en su **propia ventana** y el panel queda en su pestaña. Volver a tocarla enfoca esa ventana sin recargarla.
+- La consola es la que captura el audio y mantiene las conexiones con Gemini: si se cierra, la charla se corta. Mientras transmite, **← Panel** abre el panel en otra pestaña y cerrar o recargar pide confirmación.
+- Permití las ventanas emergentes del sitio en el navegador de producción. Mantené cada consola en una ventana visible (no en una pestaña oculta), porque los navegadores ralentizan las pestañas en segundo plano.
+- Elegí bien el idioma **Habla en** al crear la sesión: si el orador habla en español y la sesión dice English, Gemini no puede traducir español a español y ese idioma queda vacío.
+
 ## Salidas para público y producción
 
 - `/s/[sessionId]`: vista personal para celulares y computadoras.
 - `/share/[sessionId]`: QR y código de sala para el proyector.
-- `/present/[sessionId]`: el operador elige una ventana, pestaña o pantalla y la página superpone los subtítulos.
+- `/present/[sessionId]` (**Presentación + CC**): abrila en la compu del proyector, tocá **Elegir presentación**, seleccioná la ventana de las diapositivas (PowerPoint, Keynote, Google Slides) y después **Pantalla completa**. La página muestra las diapositivas con los subtítulos encima; el idioma se cambia arriba. La consola de la sala tiene que estar transmitiendo.
 - `/overlay/[sessionId]?lang=es&size=42&lines=2&bg=1`: Browser Source transparente para OBS/vMix. `bg=0` quita el recuadro y `color=ffffff` cambia el color hexadecimal.
 
 Para un stream con cámara y diapositivas, producción mezcla esas fuentes en OBS/vMix y añade `/overlay/...` como Browser Source. La aplicación no controla el botón CC de una plataforma externa; ese botón depende de que la plataforma admita una pista de subtítulos. El overlay permite quemarlos en el video para que todos los espectadores los vean.
@@ -152,6 +159,7 @@ Al 25 de septiembre de 2026, Google publica un precio efectivo aproximado de **U
 Cada sala abre **una conexión Gemini Live por idioma de salida**, así que una sala EN → ES + PT usa 2 conexiones. Gemini limita las sesiones Live **concurrentes por proyecto** según el nivel de la cuenta:
 
 - **Probado:** 3 salas en simultáneo durante 30 minutos, con 6 reconexiones forzadas por sala, sin errores de cuota ([resultado](test-results/real-3-room-30m-2026-09-25.md)).
+- **Aviso en la consola:** `Resource has been exhausted (e.g. check quota)` significa que Gemini rechazó una conexión por cuota; la consola reintenta sola y el aviso pasa a gris cuando se recupera.
 - **Límite observado:** con 10 salas, Gemini rechazó parte de las conexiones (WebSocket 1011) por la cuota concurrente del proyecto ([registro](test-results/real-load-2026-09-25.json)).
 
 Para un evento con más salas: revisá los límites de tu proyecto en [Google AI Studio](https://aistudio.google.com/) → Rate limits, pedí un aumento de cuota o subí de nivel de facturación, y hacé una prueba escalonada antes del evento.
