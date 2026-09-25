@@ -1,229 +1,177 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
+import { useQuery } from "convex/react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
-import { AdminGate } from "@/components/AdminGate";
-import { ShareDialog } from "@/components/ShareDialog";
-import { LANGS, langLabel, type Lang } from "@/lib/langs";
+import { AdminGate, type Role } from "@/components/AdminGate";
+import { SessionCard } from "@/components/admin/SessionCard";
+import { AlertsFeed, AlertToasts } from "@/components/admin/Alerts";
+import { GlossaryPanel, NewSessionPanel } from "@/components/admin/SidePanels";
+import { BUCKETS, bucketOf, type Bucket } from "@/components/admin/health";
 
 export default function AdminPage() {
-  return <AdminGate>{(key, logout) => <Dashboard adminKey={key} logout={logout} />}</AdminGate>;
+  return (
+    <AdminGate>
+      {(key, logout, role) => <CommandCenter adminKey={key} logout={logout} role={role} />}
+    </AdminGate>
+  );
 }
 
-const STATUS_DOT: Record<string, string> = {
-  idle: "bg-neutral-600",
-  live: "bg-emerald-500",
-  reconnecting: "bg-amber-500 animate-pulse",
-  paused: "bg-sky-500",
-  error: "bg-red-500",
-  ended: "bg-neutral-600",
-};
-
-function Dashboard({ adminKey, logout }: { adminKey: string; logout: () => void }) {
+function CommandCenter({ adminKey, logout, role }: { adminKey: string; logout: () => void; role: Role }) {
   const sessions = useQuery(api.sessions.dashboard);
-  // Queries must not read the clock, so the page ticks `now` itself.
+  const [filter, setFilter] = useState<Bucket | "all">("all");
+  const [sound, setSound] = useState(true);
+  // Queries must not read the clock, so the page ticks `now` itself (drives "no signal").
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 2000);
     return () => clearInterval(t);
   }, []);
 
-  const live = sessions?.filter((s) => s.status === "live").length ?? 0;
-  const problems = sessions?.filter((s) => s.status === "error" || s.status === "reconnecting").length ?? 0;
+  const grouped = useMemo(() => {
+    const g: Record<Bucket, NonNullable<typeof sessions>> = { problem: [], live: [], idle: [], ended: [] };
+    for (const s of sessions ?? []) g[bucketOf(s, now)].push(s);
+    return g;
+  }, [sessions, now]);
+
+  const liveCount = grouped.live.length;
+  const running = [...grouped.live, ...grouped.problem];
+  const latencies = running.map((s) => s.stats?.avgLatencyMs).filter((x): x is number => typeof x === "number");
+  const globalLatency = latencies.length ? latencies.reduce((a, b) => a + b, 0) / latencies.length : null;
+  const visible = BUCKETS.filter((b) => filter === "all" || filter === b.id);
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-6">
-      <header className="flex items-center justify-between">
+    <div className="flex min-h-dvh flex-col">
+      <AlertToasts sessions={sessions} now={now} sound={sound} />
+
+      <header className="flex flex-wrap items-center justify-between gap-4 border-b border-line px-6 py-5 lg:px-10">
         <div>
-          <h1 className="text-2xl font-semibold">Panel de producción</h1>
-          <p className="text-sm text-neutral-400">
-            {sessions?.length ?? 0} sesiones · <span className="text-emerald-400">{live} en vivo</span>
-            {problems > 0 && <span className="text-amber-400"> · {problems} con problemas</span>}
+          <h1 className="flex items-center gap-3 text-xl font-bold uppercase tracking-tight">
+            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-accent" />
+            Production Command
+            <span className="font-mono text-sm font-normal text-accent/70">v1.0</span>
+            {role === "demo" && (
+              <span className="rounded-sm border border-amber-500/40 px-2 py-0.5 font-mono text-[10px] tracking-[0.2em] text-amber-400">
+                DEMO
+              </span>
+            )}
+          </h1>
+          <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.3em] text-neutral-500">
+            {sessions?.length ?? 0} sesiones // <span className="text-accent">{liveCount} en vivo</span>
+            {grouped.problem.length > 0 && <span className="text-red-400"> // {grouped.problem.length} con problemas</span>}
           </p>
         </div>
-        <div className="flex gap-3 text-sm">
-          <Link href="/" className="text-neutral-400 hover:text-white">Vista pública</Link>
-          <button onClick={logout} className="text-neutral-400 hover:text-white">Salir</button>
+        <div className="flex items-center gap-6">
+          <div className="text-right">
+            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-neutral-500">Latencia global</p>
+            <p className="font-mono text-sm text-accent">
+              {globalLatency !== null ? `prom ${(globalLatency / 1000).toFixed(1)}s` : "—"}
+            </p>
+          </div>
+          <button
+            onClick={() => setSound((x) => !x)}
+            className="font-mono text-[11px] uppercase tracking-[0.25em] text-neutral-500 hover:text-white"
+            title="Sonido de alertas"
+          >
+            {sound ? "🔔" : "🔕"}
+          </button>
+          <Link
+            href="/"
+            target="_blank"
+            className="border border-line px-4 py-2 font-mono text-[11px] uppercase tracking-[0.3em] hover:border-neutral-500"
+          >
+            Vista pública
+          </Link>
+          <button onClick={logout} className="font-mono text-[11px] uppercase tracking-[0.3em] text-red-400 hover:text-red-300">
+            Salir
+          </button>
         </div>
       </header>
 
-      <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {sessions?.map((s) => {
-          const stale =
-            (s.status === "live" || s.status === "reconnecting") &&
-            s.stats !== null &&
-            now - s.stats.lastHeartbeatAt > 15_000;
-          return (
-            <article key={s._id} className="rounded-2xl border border-neutral-800 bg-neutral-950 p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <h2 className="truncate font-medium">{s.title}</h2>
-                  <p className="truncate text-xs text-neutral-400">
-                    {s.room} · {langLabel(s.sourceLang)}
-                    {s.targetLangs.length > 0 && ` → ${s.targetLangs.map((l) => l.toUpperCase()).join(" ")}`}
-                  </p>
+      {/* Funnel filter */}
+      <nav className="flex flex-wrap gap-2 px-6 pt-6 lg:px-10">
+        <FunnelTab active={filter === "all"} onClick={() => setFilter("all")} label="Todas" count={sessions?.length ?? 0} />
+        {BUCKETS.map((b) => (
+          <FunnelTab
+            key={b.id}
+            active={filter === b.id}
+            onClick={() => setFilter(b.id)}
+            label={b.label}
+            count={grouped[b.id].length}
+            tone={b.id === "problem" && grouped.problem.length > 0 ? "danger" : b.id === "live" ? "live" : undefined}
+          />
+        ))}
+      </nav>
+
+      <div className="grid flex-1 gap-6 px-6 py-6 lg:grid-cols-[1fr_380px] lg:px-10">
+        <main className="space-y-8">
+          {sessions === undefined && <p className="font-mono text-xs tracking-widest text-neutral-500">CARGANDO…</p>}
+          {visible.map((b) =>
+            grouped[b.id].length === 0 ? null : (
+              <section key={b.id}>
+                <h2
+                  className={`mb-3 font-mono text-[11px] uppercase tracking-[0.3em] ${
+                    b.id === "problem" ? "text-red-400" : b.id === "live" ? "text-accent" : "text-neutral-500"
+                  }`}
+                >
+                  {b.label} · {grouped[b.id].length}
+                </h2>
+                <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+                  {grouped[b.id].map((s) => (
+                    <SessionCard key={s._id} s={s} now={now} adminKey={adminKey} />
+                  ))}
                 </div>
-                <span className="flex shrink-0 items-center gap-1.5 text-xs">
-                  <span className={`h-2 w-2 rounded-full ${stale ? "bg-red-500" : STATUS_DOT[s.status]}`} />
-                  {stale ? "sin señal" : s.status}
-                </span>
-              </div>
-              <dl className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
-                <Stat label="Latencia" value={s.stats?.avgLatencyMs != null ? `${(s.stats.avgLatencyMs / 1000).toFixed(1)}s` : "—"} />
-                <Stat label="Líneas" value={String(s.stats?.segmentCount ?? 0)} />
-                <Stat
-                  label="Errores"
-                  value={`${s.stats?.errorCount ?? 0}${s.stats?.reconnectCount ? ` · ${s.stats.reconnectCount}↻` : ""}`}
-                  warn={(s.stats?.errorCount ?? 0) > 0}
-                />
-              </dl>
-              {s.stats?.lastError && (
-                <p className="mt-2 truncate text-xs text-amber-400" title={s.stats.lastError}>
-                  ⚠ {s.stats.lastError}
-                </p>
-              )}
-              <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs">
-                <Link className="text-emerald-400 underline" href={`/console/${s._id}`}>Consola</Link>
-                <Link className="underline" href={`/s/${s._id}`} target="_blank">Audiencia</Link>
-                <Link className="underline" href={`/overlay/${s._id}?lang=${s.targetLangs[0] ?? s.sourceLang}`} target="_blank">Overlay</Link>
-                <a className="underline" href={`/api/export/${s._id}?lang=${s.sourceLang}&format=srt`}>SRT</a>
-                {s.code && <ShareButton id={s._id} code={s.code} title={s.title} />}
-                <DeleteButton adminKey={adminKey} id={s._id} />
-              </div>
-            </article>
-          );
-        })}
-        <NewSession adminKey={adminKey} />
+              </section>
+            ),
+          )}
+          {sessions && sessions.length === 0 && (
+            <p className="text-neutral-500">No hay sesiones. Creá la primera desde el panel de la derecha →</p>
+          )}
+        </main>
+
+        <aside className="space-y-6">
+          <NewSessionPanel adminKey={adminKey} />
+          <AlertsFeed />
+          <GlossaryPanel adminKey={adminKey} />
+        </aside>
       </div>
 
-      <Glossary adminKey={adminKey} />
-    </main>
-  );
-}
-
-function Stat({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
-  return (
-    <div className="rounded-lg bg-neutral-900 py-2">
-      <dt className="text-neutral-500">{label}</dt>
-      <dd className={`mt-0.5 font-mono text-sm ${warn ? "text-amber-400" : ""}`}>{value}</dd>
+      <footer className="flex items-center justify-between border-t border-line px-6 py-3 font-mono text-[10px] uppercase tracking-[0.3em] lg:px-10">
+        <span className="text-neutral-600">Nodos activos: {running.length}</span>
+        {grouped.problem.length === 0 ? (
+          <span className="text-accent">● Todos los sistemas operativos</span>
+        ) : (
+          <span className="text-red-400">● {grouped.problem.length} sala(s) con problemas</span>
+        )}
+      </footer>
     </div>
   );
 }
 
-function ShareButton({ id, code, title }: { id: string; code: string; title: string }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <button className="text-cyan-300 underline" onClick={() => setOpen(true)}>QR {code}</button>
-      {open && <ShareDialog sessionId={id} code={code} title={title} onClose={() => setOpen(false)} />}
-    </>
-  );
-}
-
-function DeleteButton({ adminKey, id }: { adminKey: string; id: Id<"sessions"> }) {
-  const remove = useMutation(api.sessions.remove);
-  const [armed, setArmed] = useState(false);
+function FunnelTab({
+  active,
+  onClick,
+  label,
+  count,
+  tone,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  count: number;
+  tone?: "danger" | "live";
+}) {
+  const toneCls = tone === "danger" ? "text-red-400" : tone === "live" ? "text-accent" : "text-neutral-300";
   return (
     <button
-      className={`ml-auto ${armed ? "text-red-400" : "text-neutral-500"}`}
-      onClick={() => (armed ? remove({ key: adminKey, sessionId: id }) : setArmed(true))}
-      onBlur={() => setArmed(false)}
+      onClick={onClick}
+      className={`flex items-center gap-2 border px-4 py-2 font-mono text-[11px] uppercase tracking-[0.25em] ${
+        active ? "border-accent bg-accent/10" : "border-line hover:border-neutral-600"
+      }`}
     >
-      {armed ? "¿Borrar?" : "Borrar"}
+      <span className={toneCls}>{label}</span>
+      <span className="rounded-sm bg-black/50 px-1.5 text-neutral-400">{count}</span>
     </button>
-  );
-}
-
-function NewSession({ adminKey }: { adminKey: string }) {
-  const create = useMutation(api.sessions.create);
-  const [title, setTitle] = useState("");
-  const [room, setRoom] = useState("");
-  const [speaker, setSpeaker] = useState("");
-  const [sourceLang, setSourceLang] = useState<Lang>("en");
-  const [targets, setTargets] = useState<Lang[]>(["es"]);
-
-  return (
-    <form
-      className="rounded-2xl border border-dashed border-neutral-700 p-4"
-      onSubmit={async (e) => {
-        e.preventDefault();
-        if (!title.trim() || !room.trim()) return;
-        await create({ key: adminKey, title, room, speaker: speaker || undefined, sourceLang, targetLangs: targets });
-        setTitle("");
-        setSpeaker("");
-      }}
-    >
-      <h2 className="font-medium">Nueva sesión</h2>
-      <div className="mt-3 space-y-2 text-sm">
-        <input className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2" placeholder="Título de la charla" value={title} onChange={(e) => setTitle(e.target.value)} />
-        <div className="flex gap-2">
-          <input className="w-1/2 rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2" placeholder="Sala" value={room} onChange={(e) => setRoom(e.target.value)} />
-          <input className="w-1/2 rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2" placeholder="Orador (opcional)" value={speaker} onChange={(e) => setSpeaker(e.target.value)} />
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-neutral-400">Habla en</span>
-          <select className="rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1.5" value={sourceLang} onChange={(e) => setSourceLang(e.target.value as Lang)}>
-            {LANGS.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
-          </select>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-neutral-400">Traducir a</span>
-          {LANGS.filter((l) => l.code !== sourceLang).map((l) => (
-            <label key={l.code} className="flex items-center gap-1">
-              <input
-                type="checkbox"
-                checked={targets.includes(l.code)}
-                onChange={(e) => setTargets((t) => (e.target.checked ? [...t, l.code] : t.filter((x) => x !== l.code)))}
-              />
-              {l.label}
-            </label>
-          ))}
-        </div>
-      </div>
-      <button className="mt-3 w-full rounded-lg bg-emerald-500 py-2 font-medium text-black">Crear sesión</button>
-    </form>
-  );
-}
-
-function Glossary({ adminKey }: { adminKey: string }) {
-  const terms = useQuery(api.glossary.list);
-  const add = useMutation(api.glossary.add);
-  const remove = useMutation(api.glossary.remove);
-  const [term, setTerm] = useState("");
-  const [es, setEs] = useState("");
-
-  return (
-    <section className="mt-10">
-      <h2 className="text-lg font-semibold">Glosario del evento</h2>
-      <p className="text-sm text-neutral-400">
-        Términos técnicos y nombres propios. Mejoran el reconocimiento de voz y fuerzan la traducción (se aplica a sesiones nuevas o reiniciadas).
-      </p>
-      <form
-        className="mt-3 flex flex-wrap gap-2 text-sm"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          if (!term.trim()) return;
-          await add({ key: adminKey, term, translations: es.trim() ? { es: es.trim() } : undefined });
-          setTerm("");
-          setEs("");
-        }}
-      >
-        <input className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2" placeholder="Término (ej. Kubernetes)" value={term} onChange={(e) => setTerm(e.target.value)} />
-        <input className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2" placeholder="Traducción forzada ES (opcional)" value={es} onChange={(e) => setEs(e.target.value)} />
-        <button className="rounded-lg border border-neutral-700 px-4 py-2">Agregar</button>
-      </form>
-      <ul className="mt-3 flex flex-wrap gap-2 text-sm">
-        {terms?.map((t) => (
-          <li key={t._id} className="flex items-center gap-2 rounded-full border border-neutral-800 px-3 py-1">
-            {t.term}
-            {t.translations?.es && <span className="text-neutral-500">→ {t.translations.es}</span>}
-            <button className="text-neutral-500 hover:text-red-400" onClick={() => remove({ key: adminKey, id: t._id })}>×</button>
-          </li>
-        ))}
-      </ul>
-    </section>
   );
 }
