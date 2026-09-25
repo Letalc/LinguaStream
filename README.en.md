@@ -103,11 +103,18 @@ After scanning the QR, attendees pick their language or **Accessible · deaf or 
 - A **sign-language interpreter** video: the room console accepts a link (YouTube or any embeddable page) and attendees see it above the captions. It is a human interpreter provided by the event, not AI-generated.
 - **Vibration** when the talk starts, pauses, and ends (Android; iOS Safari does not allow web vibration).
 
+## Running several rooms
+
+- From the dashboard, **Consola** opens each room in its **own window** and the dashboard stays in its tab. Clicking it again focuses that window without reloading it.
+- The console captures the audio and holds the Gemini connections: closing it ends the talk. While live, **← Panel** opens the dashboard in another tab, and closing or reloading asks for confirmation.
+- Allow pop-ups for the site on the production browser. Keep each console in a visible window (not a hidden tab), because browsers throttle background tabs.
+- Pick the right **Habla en** (spoken language) when creating the session: if the speaker talks in Spanish and the session says English, Gemini cannot translate Spanish into Spanish and that language stays empty.
+
 ## Audience and production outputs
 
 - `/s/[sessionId]`: personal view for phones and computers.
 - `/share/[sessionId]`: room QR and code for a projector.
-- `/present/[sessionId]`: the operator selects a window, tab, or display and the page places captions over it.
+- `/present/[sessionId]` (**Presentation + CC**): open it on the projector computer, click **Elegir presentación** (choose presentation), select the slides window (PowerPoint, Keynote, Google Slides), then **Pantalla completa** (full screen). The page shows the slides with captions on top; switch the language at the top. The room console must be streaming.
 - `/overlay/[sessionId]?lang=en&size=42&lines=2&bg=1`: transparent OBS/vMix Browser Source. Use `bg=0` to remove the box and `color=ffffff` for a hexadecimal text color.
 
 For a stream combining camera and slides, production mixes those sources in OBS/vMix and adds `/overlay/...` as a Browser Source. The app cannot control the CC button of an unknown third-party platform; that requires caption-track support from that platform. The overlay burns captions into the video so every viewer can see them.
@@ -152,6 +159,7 @@ As of September 25, 2026, Google lists an approximate effective price of **USD 0
 Each room opens **one Gemini Live connection per target language**, so an EN → ES + PT room uses 2 connections. Gemini limits **concurrent Live sessions per project** according to the account tier:
 
 - **Tested:** 3 simultaneous rooms for 30 minutes, with 6 forced reconnections per room and no quota errors ([result](test-results/real-3-room-30m-2026-09-25.md)).
+- **Console notice:** `Resource has been exhausted (e.g. check quota)` means Gemini rejected a connection because of quota; the console retries on its own and the notice turns grey once it recovers.
 - **Observed limit:** with 10 rooms, Gemini rejected part of the connections (WebSocket 1011) because of the project's concurrent quota ([log](test-results/real-load-2026-09-25.json)).
 
 For an event with more rooms: check your project's limits in [Google AI Studio](https://aistudio.google.com/) → Rate limits, request a quota increase or move to a higher billing tier, and run a staged test before the event.
