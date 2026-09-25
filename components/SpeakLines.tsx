@@ -30,6 +30,7 @@ export function SpeakLines({ sessionId, lang }: { sessionId: Id<"sessions">; lan
   useEffect(() => {
     if (!supported()) return;
     const synth = window.speechSynthesis;
+    const activeGeneration = generation;
     synth.cancel();
     const pick = () => {
       const voices = synth.getVoices();
@@ -53,7 +54,7 @@ export function SpeakLines({ sessionId, lang }: { sessionId: Id<"sessions">; lan
       synth.removeEventListener("voiceschanged", pick);
       document.removeEventListener("visibilitychange", onVisibility);
       synth.cancel();
-      generation.current++;
+      activeGeneration.current++;
       pending.current = 0;
     };
   }, [lang]);
