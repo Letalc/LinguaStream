@@ -4,7 +4,7 @@ import { useQuery } from "convex/react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { isStale, type DashboardSession } from "./health";
-import { TriangleAlert } from "lucide-react";
+import { TriangleAlert } from "@/components/ui/NeonIcon";
 
 type Tone = "danger" | "warn" | "ok" | "info";
 type Toast = { id: string; tone: Tone; title: string; body: string };

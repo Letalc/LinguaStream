@@ -8,7 +8,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { langLabel } from "@/lib/langs";
 import { Dot } from "@/components/ui/Dot";
-import { Ear } from "lucide-react";
+import { Ear } from "@/components/ui/NeonIcon";
 
 /** Audience landing: type the room code shown on the projector, or pick a live talk. */
 export default function Home() {

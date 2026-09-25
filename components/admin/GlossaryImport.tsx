@@ -4,7 +4,7 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { useRef, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { Check, CircleAlert, Sparkles, Upload, X } from "lucide-react";
+import { Check, CircleAlert, Sparkles, Upload, X } from "@/components/ui/NeonIcon";
 
 type Candidate = {
   term: string;

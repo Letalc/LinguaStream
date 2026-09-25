@@ -13,7 +13,7 @@ import { useWakeLock } from "@/lib/useWakeLock";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
 import { LagIndicator } from "@/components/LagIndicator";
 import { SpeakLines } from "@/components/SpeakLines";
-import { AArrowDown, AArrowUp, ArrowLeft, Contrast, Languages, Volume2, VolumeX } from "lucide-react";
+import { AArrowDown, AArrowUp, ArrowLeft, Contrast, Languages, Volume2, VolumeX } from "@/components/ui/NeonIcon";
 import { JoinDialog, type JoinChoice, type ViewMode } from "@/components/JoinDialog";
 import { AccessibleView } from "@/components/AccessibleView";
 import { useStoredState, useHydrated } from "@/lib/useStoredState";

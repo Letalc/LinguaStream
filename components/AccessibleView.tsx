@@ -13,7 +13,7 @@ import {
   Square,
   Vibrate,
   WifiOff,
-} from "lucide-react";
+} from "@/components/ui/NeonIcon";
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";

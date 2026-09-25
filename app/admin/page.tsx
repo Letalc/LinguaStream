@@ -11,7 +11,8 @@ import { EndedArchive } from "@/components/admin/EndedArchive";
 import { AlertsFeed, AlertToasts } from "@/components/admin/Alerts";
 import { GlossaryPanel, NewSessionPanel } from "@/components/admin/SidePanels";
 import { BUCKETS, bucketOf, type Bucket } from "@/components/admin/health";
-import { Bell, BellOff, ExternalLink, LogOut, Calendar, Plus } from "lucide-react";
+import { Calendar, Plus } from "lucide-react";
+import { Bell, BellOff, ExternalLink, LogOut } from "@/components/ui/NeonIcon";
 import { Dot } from "@/components/ui/Dot";
 
 export default function AdminPage() {
