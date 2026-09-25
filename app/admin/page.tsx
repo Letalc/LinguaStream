@@ -48,6 +48,8 @@ function CommandCenter({ adminKey, logout, role }: { adminKey: string; logout: (
   const grouped = useMemo(() => {
     const g: Record<Bucket, NonNullable<typeof sessions>> = { problem: [], live: [], idle: [], ended: [] };
     for (const s of sessions ?? []) g[bucketOf(s, now)].push(s);
+    // Scheduled talks in start order; ones without a time go last.
+    g.idle.sort((a, b) => (a.scheduledAt ?? Infinity) - (b.scheduledAt ?? Infinity));
     return g;
   }, [sessions, now]);
 

@@ -8,6 +8,8 @@ import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
 import { SubtitleFeed } from "@/components/SubtitleFeed";
+import { EmptyLangHint } from "@/components/EmptyLangHint";
+import { formatStart } from "@/lib/startTime";
 import { LANGS, isLang, type Lang } from "@/lib/langs";
 import { useWakeLock } from "@/lib/useWakeLock";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
@@ -80,7 +82,7 @@ export function AudienceView({ id, initialSession }: { id: string; initialSessio
       <>
         <ConnectionBadge />
         {dialog}
-        <AccessibleView session={session} sessionId={sessionId} lang={current} onChange={() => setPicking(true)} />
+        <AccessibleView session={session} sessionId={sessionId} lang={current} onChange={() => setPicking(true)} onSwitchLang={setLang} />
       </>
     );
   }
@@ -134,6 +136,12 @@ export function AudienceView({ id, initialSession }: { id: string; initialSessio
           </div>
         </div>
       </header>
+      {hydrated && session.status === "idle" && session.scheduledAt && (
+        <p className="mx-4 mt-4 rounded-lg border border-neutral-800 px-4 py-3 text-sm text-neutral-300">
+          La charla empieza a las <b>{formatStart(session.scheduledAt)}</b>. Los subtítulos aparecen solos cuando arranque.
+        </p>
+      )}
+      <EmptyLangHint session={session} sessionId={sessionId} lang={current} onSwitch={setLang} className="mx-4 mt-4" />
       <SubtitleFeed sessionId={sessionId} lang={current} className={`flex-1 px-4 py-4 ${SIZES[size]}`} limit={100} />
       {speak && <SpeakLines key={current} sessionId={sessionId} lang={current} />}
       <footer className="flex items-center gap-4 border-t border-neutral-800 px-4 py-2 text-sm">

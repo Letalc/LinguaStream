@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { LANGS, type Lang } from "@/lib/langs";
+import { fromLocalInput } from "@/lib/startTime";
 import { GlossaryImport } from "./GlossaryImport";
 import { Plus } from "lucide-react";
 import { Sparkles, X } from "@/components/ui/NeonIcon";
@@ -17,6 +18,7 @@ export function NewSessionPanel({ adminKey }: { adminKey: string }) {
   const [title, setTitle] = useState("");
   const [room, setRoom] = useState("");
   const [speaker, setSpeaker] = useState("");
+  const [startsAt, setStartsAt] = useState(""); // optional, datetime-local value
   const [sourceLang, setSourceLang] = useState<Lang>("en");
   const [targets, setTargets] = useState<Lang[]>(["es"]);
   const [busy, setBusy] = useState(false);
@@ -30,9 +32,10 @@ export function NewSessionPanel({ adminKey }: { adminKey: string }) {
         if (!title.trim() || !room.trim() || validTargets.length === 0) return;
         setBusy(true);
         try {
-          await create({ key: adminKey, title, room, speaker: speaker || undefined, sourceLang, targetLangs: validTargets });
+          await create({ key: adminKey, title, room, speaker: speaker || undefined, sourceLang, targetLangs: validTargets, scheduledAt: fromLocalInput(startsAt) });
           setTitle("");
           setSpeaker("");
+          setStartsAt("");
         } finally {
           setBusy(false);
         }
@@ -57,7 +60,11 @@ export function NewSessionPanel({ adminKey }: { adminKey: string }) {
           </div>
         </div>
         <div>
-          <label className={label}>Habla en</label>
+          <label className={label}>Hora de inicio · opcional</label>
+          <input type="datetime-local" className={`${input} [color-scheme:dark]`} value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+        </div>
+        <div>
+          <label className={label}>Habla en · idioma del orador</label>
           <select className={input} value={sourceLang} onChange={(e) => setSourceLang(e.target.value as Lang)}>
             {LANGS.map((l) => (
               <option key={l.code} value={l.code}>{l.label}</option>

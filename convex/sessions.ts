@@ -92,6 +92,7 @@ export const create = mutation({
     sourceLang: langValidator,
     targetLangs: v.array(langValidator),
     conferenceId: v.optional(v.id("conferences")),
+    scheduledAt: v.optional(v.number()),
   },
   returns: v.id("sessions"),
   handler: async (ctx, { key, ...fields }) => {
