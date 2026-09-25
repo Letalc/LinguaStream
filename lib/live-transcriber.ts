@@ -43,6 +43,9 @@ type Options = {
 };
 
 const MAX_BUFFERED_CHUNKS = 50; // ~5 s of 100 ms audio chunks kept while reconnecting
+// Gemini sometimes keeps a connection open but stops returning text for one language.
+// If the speaker talks this long with no output at all, that connection is replaced.
+const STALL_VOICED_MS = 8000;
 
 export class LiveTranslateStream {
   private session: Session | null = null;
@@ -52,6 +55,8 @@ export class LiveTranslateStream {
   private pending: string[] = [];
   private lastTextAt = 0;
   private stopRequestedAt = 0;
+  private voicedSinceOutputMs = 0; // speech heard since this connection last returned text
+  private lastTickAt = 0;
   private inSeg: LineSegmenter | null;
   private outSeg: LineSegmenter;
 
@@ -109,6 +114,28 @@ export class LiveTranslateStream {
   tick(now = Date.now()) {
     this.inSeg?.tick(now);
     this.outSeg.tick(now);
+    this.watchStall(now);
+  }
+
+  /** Detects a live connection that went mute while the speaker keeps talking. */
+  private watchStall(now: number) {
+    const dt = this.lastTickAt ? Math.min(500, now - this.lastTickAt) : 0;
+    this.lastTickAt = now;
+    if (!this.session || this.reconnecting || this.stopped || this.stopRequestedAt) return;
+    // "Someone is talking" = the original transcript keeps arriving (music or noise don't count).
+    // The stream that produces that transcript can only rely on the audio level, so it waits twice as long.
+    const clock = this.opts.clock;
+    const talking = now - clock.lastTranscriptAt < 3000 || (this.inSeg !== null && now - clock.lastVoiceAt < 300);
+    if (talking) this.voicedSinceOutputMs += dt;
+    if (this.voicedSinceOutputMs < (this.inSeg && now - clock.lastTranscriptAt >= 3000 ? STALL_VOICED_MS * 2 : STALL_VOICED_MS)) return;
+    this.voicedSinceOutputMs = 0;
+    const stalled = this.session;
+    this.session = null; // its onclose is ignored from now on
+    this.resumeHandle = undefined; // resuming could bring back the same stuck state
+    try {
+      stalled.close();
+    } catch {}
+    void this.reconnect("sin texto de Gemini con el orador hablando: reconectando");
   }
 
   /** Drops the connection on purpose — used by the console's "simulate drop" demo button. */
@@ -156,6 +183,7 @@ export class LiveTranslateStream {
 
     this.session = currentSession;
     this.reconnecting = false;
+    this.voicedSinceOutputMs = 0;
     this.opts.onStatus("live");
     const queued = this.pending;
     this.pending = [];
@@ -209,10 +237,12 @@ export class LiveTranslateStream {
     if (!c) return;
     if (c.inputTranscription?.text) {
       this.lastTextAt = Date.now();
+      this.opts.clock.lastTranscriptAt = this.lastTextAt;
       this.inSeg?.append(c.inputTranscription.text);
     }
     if (c.outputTranscription?.text) {
       this.lastTextAt = Date.now();
+      this.voicedSinceOutputMs = 0;
       this.outSeg.append(c.outputTranscription.text);
     }
     if (c.turnComplete) {
@@ -229,6 +259,7 @@ export class LiveTranslateStream {
 export class SpeechClock {
   readonly t0 = Date.now();
   lastVoiceAt = 0;
+  lastTranscriptAt = 0; // last original-language text from Gemini, shared by every language's stream
   observe(rms: number) {
     if (rms > 0.015) this.lastVoiceAt = Date.now();
   }
