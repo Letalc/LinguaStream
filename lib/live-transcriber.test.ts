@@ -1,8 +1,8 @@
 import { beforeEach, expect, test, vi } from "vitest";
-import type { LiveServerMessage } from "@google/genai";
 import { LineSegmenter, LiveTranslateStream, SpeechClock, type CommittedLine } from "./live-transcriber";
 
 type Callbacks = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onmessage: (message: any) => void;
   onclose: (event: { code: number; reason: string }) => void;
 };

@@ -11,7 +11,7 @@ import { EndedArchive } from "@/components/admin/EndedArchive";
 import { AlertsFeed, AlertToasts } from "@/components/admin/Alerts";
 import { GlossaryPanel, NewSessionPanel } from "@/components/admin/SidePanels";
 import { BUCKETS, bucketOf, type Bucket } from "@/components/admin/health";
-import { Bell, BellOff, ExternalLink, LogOut, Calendar, Plus, Check } from "lucide-react";
+import { Bell, BellOff, ExternalLink, LogOut, Calendar, Plus } from "lucide-react";
 import { Dot } from "@/components/ui/Dot";
 
 export default function AdminPage() {
@@ -68,8 +68,8 @@ function CommandCenter({ adminKey, logout, role }: { adminKey: string; logout: (
             )}
           </h1>
           <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.3em] text-neutral-500">
-            {sessions?.length ?? 0} sesiones // <span className="text-accent">{liveCount} en vivo</span>
-            {grouped.problem.length > 0 && <span className="text-red-400"> // {grouped.problem.length} con problemas</span>}
+            {sessions?.length ?? 0} sesiones {"//"} <span className="text-accent">{liveCount} en vivo</span>
+            {grouped.problem.length > 0 && <span className="text-red-400"> {"//"} {grouped.problem.length} con problemas</span>}
           </p>
         </div>
         <div className="flex items-center gap-6">

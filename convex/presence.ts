@@ -3,6 +3,7 @@ import { components } from "./_generated/api";
 import { v } from "convex/values";
 import { Presence } from "@convex-dev/presence";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const presence = new Presence((components as any).presence);
 
 export const heartbeat = mutation({
