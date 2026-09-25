@@ -22,14 +22,17 @@ function PresentationOutput({ sessionId }: { sessionId: Id<"sessions"> }) {
   const query = useSearchParams();
   const defaults = overlayOptions(query);
   const session = useQuery(api.sessions.get, { sessionId });
-  const [lang, setLang] = useState<Lang>(defaults.lang);
+  const [picked, setPicked] = useState<Lang | null>(query.get("lang") ? defaults.lang : null);
   const [size, setSize] = useState(defaults.size);
   const [box, setBox] = useState(defaults.box);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const video = useRef<HTMLVideoElement>(null);
   const stage = useRef<HTMLDivElement>(null);
-  const feed = useQuery(api.segments.feed, { sessionId, lang, limit: defaults.lines });
+  const available: Lang[] = session ? [session.sourceLang, ...session.targetLangs] : [];
+  // Only languages this room produces: ?lang= if valid, else Spanish when offered, else the original.
+  const lang: Lang = picked && available.includes(picked) ? picked : available.includes("es") ? "es" : (session?.sourceLang ?? defaults.lang);
+  const feed = useQuery(api.segments.feed, session ? { sessionId, lang, limit: defaults.lines } : "skip");
 
   useEffect(() => {
     if (video.current) video.current.srcObject = stream;
@@ -54,7 +57,6 @@ function PresentationOutput({ sessionId }: { sessionId: Id<"sessions"> }) {
   if (session === undefined) return <main className="p-8 text-neutral-400">Cargando…</main>;
   if (session === null) return <main className="p-8">Sesión no encontrada.</main>;
 
-  const available = [session.sourceLang, ...session.targetLangs];
   const lines = [...(feed?.lines.map((line) => line.text) ?? []), ...(feed?.partial ? [feed.partial] : [])].slice(-defaults.lines);
 
   return (
@@ -64,7 +66,7 @@ function PresentationOutput({ sessionId }: { sessionId: Id<"sessions"> }) {
           <p className="font-medium">{session.title}</p>
           <p className="text-xs text-neutral-500">Salida para proyector o captura de producción</p>
         </div>
-        <select value={lang} onChange={(event) => setLang(event.target.value as Lang)} className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm">
+        <select value={lang} onChange={(event) => setPicked(event.target.value as Lang)} className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm">
           {LANGS.filter((item) => available.includes(item.code)).map((item) => <option key={item.code} value={item.code}>{item.label}</option>)}
         </select>
         <label className="flex items-center gap-2 text-xs text-neutral-400">
@@ -85,6 +87,13 @@ function PresentationOutput({ sessionId }: { sessionId: Id<"sessions"> }) {
             <MonitorUp className="h-16 w-16 text-cyan-300" />
             <span className="text-xl">Elegí la ventana, pestaña o pantalla que contiene las diapositivas</span>
           </button>
+        )}
+        {stream && lines.length === 0 && (
+          <p className="pointer-events-none absolute inset-x-0 bottom-[4%] text-center text-sm text-neutral-300 [text-shadow:0_1px_4px_#000]">
+            {session.status === "live" || session.status === "reconnecting"
+              ? `Esperando subtítulos en ${LANGS.find((l) => l.code === lang)?.label ?? lang}…`
+              : "La sala no está transmitiendo: iniciá la consola para ver los subtítulos."}
+          </p>
         )}
         {lines.length > 0 && (
           <div className="pointer-events-none absolute inset-x-0 bottom-[4%] flex justify-center px-[4%]">

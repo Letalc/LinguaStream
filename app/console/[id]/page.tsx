@@ -53,6 +53,7 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
   const [source, setSource] = useState<string>("tab");
   const [state, setState] = useState<StreamStatus | "idle" | "paused">("idle");
   const [lastError, setLastError] = useState<string | null>(null);
+  const [recovered, setRecovered] = useState(false); // last error already healed by auto-reconnect
   const [level, setLevel] = useState(0);
   const [inputLabel, setInputLabel] = useState("");
   const [debug, setDebug] = useState<string[]>([]);
@@ -136,7 +137,12 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
                     ? "stopped"
                     : "live";
             setState(overall);
-            if (err) setLastError(`[${target}] ${err}`);
+            if (err) {
+              setLastError(`[${target}] ${err}`);
+              setRecovered(false);
+            } else if (overall === "live") {
+              setRecovered(true);
+            }
             const backend = overall === "connecting" ? "live" : overall === "stopped" ? "ended" : overall;
             setStatus({ key: adminKey, sessionId, consoleId, status: backend, error: err ? `[${target}] ${err}` : undefined }).catch(() => {});
           },
@@ -286,7 +292,15 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
             </div>
           </div>
         </div>
-        {lastError && <p className="mt-3 flex items-start gap-2 text-sm text-amber-400"><TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" /> {lastError}</p>}
+        {lastError && (
+          <p className={`mt-3 flex items-start gap-2 text-sm ${recovered ? "text-neutral-500" : "text-amber-400"}`}>
+            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              {recovered && "Se reconectó sola después de: "}
+              {explainError(lastError)}
+            </span>
+          </p>
+        )}
         {running && (
           <p className={`mt-3 text-xs ${hidden ? "text-amber-400" : "text-neutral-500"}`}>
             Tip: dejá esta consola en una <b>ventana aparte</b> (no en otra pestaña de la misma ventana): los
@@ -373,4 +387,12 @@ function InterpreterField({ initial, onSave }: { initial: string; onSave: (url: 
       </p>
     </form>
   );
+}
+
+/** Gemini's raw messages are cryptic for room operators: add what it means and what happens next. */
+function explainError(message: string) {
+  if (/exhausted|quota|429/i.test(message)) {
+    return `${message} · Gemini limitó la conexión por cuota del proyecto; la consola reintenta sola.`;
+  }
+  return message;
 }
