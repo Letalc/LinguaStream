@@ -86,9 +86,11 @@ export default defineSchema({
   }),
 
   // Event-wide glossary: technical terms and proper names.
+  // Glossary: event-wide terms (no sessionId) + per-talk terms (e.g. extracted from its slides).
   glossary: defineTable({
     term: v.string(),
     // Optional forced translations, e.g. { es: "despliegue" }. Empty = keep term as-is.
     translations: v.optional(v.record(v.string(), v.string())),
-  }),
+    sessionId: v.optional(v.id("sessions")),
+  }).index("by_sessionId", ["sessionId"]),
 });
