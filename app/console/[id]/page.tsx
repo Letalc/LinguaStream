@@ -293,7 +293,7 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
           </div>
         </div>
         {lastError && (
-          <p className={`mt-3 flex items-start gap-2 text-sm ${recovered ? "text-neutral-500" : "text-amber-400"}`}>
+          <p className={`mt-3 flex items-start gap-2 text-sm ${recovered ? "text-neutral-400" : "text-amber-400"}`}>
             <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
             <span>
               {recovered && "Se reconectó sola después de: "}
@@ -302,7 +302,7 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
           </p>
         )}
         {running && (
-          <p className={`mt-3 text-xs ${hidden ? "text-amber-400" : "text-neutral-500"}`}>
+          <p className={`mt-3 text-xs ${hidden ? "text-amber-400" : "text-neutral-400"}`}>
             Tip: dejá esta consola en una <b>ventana aparte</b> (no en otra pestaña de la misma ventana): los
             navegadores ralentizan las pestañas ocultas.
           </p>
@@ -312,9 +312,9 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
       <div className={`mt-6 grid gap-4 ${langCols}`}>
         {langs.map((lang) => (
           <div key={lang} className="flex min-w-0 flex-col rounded-2xl border border-neutral-800 p-4">
-            <h2 className="mb-2 text-xs uppercase tracking-wide text-neutral-500">
+            <h2 className="mb-2 text-xs uppercase tracking-wide text-neutral-400">
               {langLabel(lang)}
-              {lang === session.sourceLang && <span className="ml-2 normal-case tracking-normal text-neutral-600">original</span>}
+              {lang === session.sourceLang && <span className="ml-2 normal-case tracking-normal text-neutral-400">original</span>}
             </h2>
             <SubtitleFeed sessionId={sessionId} lang={lang} className="h-80 text-base" />
           </div>
@@ -363,7 +363,7 @@ function InterpreterField({ initial, onSave }: { initial: string; onSave: (url: 
         }
       }}
     >
-      <label className="flex items-center gap-2 text-xs uppercase tracking-wide text-neutral-500">
+      <label className="flex items-center gap-2 text-xs uppercase tracking-wide text-neutral-400">
         <Hand className="h-4 w-4" /> Intérprete de lengua de señas (LSA) · opcional
       </label>
       <div className="mt-2 flex gap-2">
@@ -380,7 +380,7 @@ function InterpreterField({ initial, onSave }: { initial: string; onSave: (url: 
           {state === "saved" ? "Guardado" : "Guardar"}
         </button>
       </div>
-      <p className="mt-2 text-xs text-neutral-500">
+      <p className="mt-2 text-xs text-neutral-400">
         {state === "error"
           ? error
           : "Se muestra en el modo Accesible de la audiencia. Es un intérprete humano: no se genera con IA."}

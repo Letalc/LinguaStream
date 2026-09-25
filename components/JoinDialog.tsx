@@ -63,7 +63,7 @@ export function JoinDialog({
               >
                 <LangBadge code={l.code} className={active ? "text-accent" : "text-neutral-300"} />
                 <span className="flex-1 text-base">{l.label}</span>
-                {l.code === sourceLang && <span className="text-xs text-neutral-500">idioma original</span>}
+                {l.code === sourceLang && <span className="text-xs text-neutral-400">idioma original</span>}
                 {active && <Check className="h-4 w-4 text-accent" />}
               </button>
             );
@@ -112,7 +112,7 @@ export function JoinDialog({
           Confirmar y entrar
         </button>
         {onCancel && (
-          <button onClick={onCancel} className="mt-2 w-full py-2 text-sm text-neutral-500 hover:text-white">
+          <button onClick={onCancel} className="mt-2 w-full py-2 text-sm text-neutral-400 hover:text-white">
             Cancelar
           </button>
         )}

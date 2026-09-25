@@ -47,7 +47,7 @@ export default function Home() {
           placeholder="CÓDIGO"
           autoCapitalize="characters"
           autoComplete="off"
-          className="min-w-0 flex-1 rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-4 text-center font-mono text-2xl tracking-[0.4em] placeholder:text-neutral-700"
+          className="min-w-0 flex-1 rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-4 text-center font-mono text-2xl tracking-[0.4em] placeholder:text-neutral-500"
         />
         <button className="rounded-xl bg-cyan-300 px-6 font-mono font-semibold tracking-widest text-black">ENTRAR</button>
       </form>
@@ -80,10 +80,10 @@ export default function Home() {
         </div>
       )}
 
-      <h2 className="mt-12 font-mono text-[11px] tracking-[0.3em] text-neutral-500">EN VIVO AHORA</h2>
+      <h2 className="mt-12 font-mono text-[11px] tracking-[0.3em] text-neutral-400">EN VIVO AHORA</h2>
       <ul className="mt-3 space-y-2">
-        {sessions === undefined && <li className="text-neutral-500">Cargando…</li>}
-        {sessions && live.length === 0 && <li className="text-sm text-neutral-500">No hay charlas en vivo en este momento.</li>}
+        {sessions === undefined && <li className="text-neutral-400">Cargando…</li>}
+        {sessions && live.length === 0 && <li className="text-sm text-neutral-400">No hay charlas en vivo en este momento.</li>}
         {live.map((s) => (
           <li key={s._id}>
             <Link
@@ -104,7 +104,7 @@ export default function Home() {
           </li>
         ))}
       </ul>
-      <p className="mt-16 text-center text-xs text-neutral-600">
+      <p className="mt-16 text-center text-xs text-neutral-400">
         Open source · Gemini Live · <Link href="/admin" className="underline">Acceso Host</Link>
       </p>
     </main>

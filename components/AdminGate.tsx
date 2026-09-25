@@ -21,7 +21,7 @@ export function AdminGate({
   const [tried, setTried] = useState(false);
 
   if (!loaded || (key && role === undefined)) {
-    return <div className="p-8 font-mono text-xs tracking-widest text-neutral-500">CARGANDO…</div>;
+    return <div className="p-8 font-mono text-xs tracking-widest text-neutral-400">CARGANDO…</div>;
   }
   if (key && role) return <>{children(key, () => setKey(null), role)}</>;
 
@@ -43,7 +43,7 @@ export function AdminGate({
         </button>
       )}
       {demoAvailable && (
-        <p className="mt-2 text-xs text-neutral-500">
+        <p className="mt-2 text-xs text-neutral-400">
           Modo demo: hasta 3 salas en vivo a la vez y 20 minutos por sesión.
         </p>
       )}

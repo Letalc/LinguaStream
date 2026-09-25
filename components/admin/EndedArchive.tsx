@@ -42,35 +42,35 @@ export function EndedArchive({
         {open ? <FolderOpen className="h-5 w-5 text-neutral-400" /> : <FolderClosed className="h-5 w-5 text-neutral-400" />}
         <span className="font-mono text-[11px] uppercase tracking-[0.3em] text-neutral-300">Archivo · Finalizadas</span>
         <span className="rounded-sm bg-black/50 px-1.5 font-mono text-[11px] text-neutral-400">{sessions.length}</span>
-        <span className="ml-auto text-xs text-neutral-500">Registro de charlas terminadas y sus transcripciones</span>
-        <ChevronDown className={`h-4 w-4 text-neutral-500 transition-transform ${open ? "rotate-180" : ""}`} />
+        <span className="ml-auto text-xs text-neutral-400">Registro de charlas terminadas y sus transcripciones</span>
+        <ChevronDown className={`h-4 w-4 text-neutral-400 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
         <div className="border-t border-line px-5 pb-5">
           <label className="mt-4 flex items-center gap-2 rounded-sm border border-line bg-black/40 px-3 py-2">
-            <Search className="h-4 w-4 text-neutral-500" />
+            <Search className="h-4 w-4 text-neutral-400" />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Buscar por título o sala"
-              className="w-full bg-transparent font-mono text-xs outline-none placeholder:text-neutral-600"
+              className="w-full bg-transparent font-mono text-xs outline-none placeholder:text-neutral-500"
             />
           </label>
 
           {days.length === 0 && (
-            <p className="mt-6 flex items-center gap-2 text-sm text-neutral-500">
+            <p className="mt-6 flex items-center gap-2 text-sm text-neutral-400">
               <Archive className="h-4 w-4" /> No hay charlas terminadas{q && " con ese nombre"}.
             </p>
           )}
 
           {days.map(([day, rows]) => (
             <div key={day} className="mt-6">
-              <h3 className="font-mono text-[10px] uppercase tracking-[0.3em] text-neutral-500">{day}</h3>
+              <h3 className="font-mono text-[10px] uppercase tracking-[0.3em] text-neutral-400">{day}</h3>
               <div className="mt-2 overflow-x-auto">
                 <table className="w-full min-w-[760px] text-sm">
                   <thead>
-                    <tr className="border-b border-line text-left font-mono text-[9px] uppercase tracking-[0.25em] text-neutral-600">
+                    <tr className="border-b border-line text-left font-mono text-[9px] uppercase tracking-[0.25em] text-neutral-400">
                       <th className="py-2 pr-3 font-normal">Charla</th>
                       <th className="py-2 pr-3 font-normal">Fin</th>
                       <th className="py-2 pr-3 font-normal">Duración</th>
@@ -86,7 +86,7 @@ export function EndedArchive({
                       <tr key={s._id} className="border-b border-line/60 align-top last:border-0">
                         <td className="max-w-64 py-3 pr-3">
                           <p className="truncate font-medium">{s.title}</p>
-                          <p className="truncate font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-500">
+                          <p className="truncate font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-400">
                             {s.room}{s.code ? ` · ${s.code}` : ""}
                           </p>
                         </td>

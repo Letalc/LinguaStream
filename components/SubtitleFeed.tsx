@@ -27,9 +27,9 @@ export function SubtitleFeed({
 
   return (
     <div className={`overflow-y-auto leading-relaxed ${className}`} aria-live="polite">
-      {feed === undefined && <p className="text-neutral-500">Conectando…</p>}
+      {feed === undefined && <p className="text-neutral-400">Conectando…</p>}
       {feed && feed.lines.length === 0 && !feed.partial && (
-        <p className="text-neutral-500">Esperando que empiece la charla…</p>
+        <p className="text-neutral-400">Esperando que empiece la charla…</p>
       )}
       {feed?.lines.map((l) => (
         <p key={l.seq} className="mb-2">{l.text}</p>

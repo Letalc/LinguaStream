@@ -13,7 +13,7 @@ import { Dot } from "@/components/ui/Dot";
 export default function ProjectorPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const session = useQuery(api.sessions.get, { sessionId: id as Id<"sessions"> });
-  if (!session) return <main className="p-8 text-neutral-500">{session === null ? "Sesión no encontrada." : "Cargando…"}</main>;
+  if (!session) return <main className="p-8 text-neutral-400">{session === null ? "Sesión no encontrada." : "Cargando…"}</main>;
   if (!session.code) return <main className="p-8">Esta sesión no tiene código de sala.</main>;
 
   const langs = [session.sourceLang, ...session.targetLangs].map(langLabel).join(" · ");

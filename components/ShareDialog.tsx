@@ -32,7 +32,7 @@ export function ShareDialog({
             <p className="flex items-center gap-2 font-mono text-[11px] tracking-[0.3em] text-accent"><QrCodeIcon className="h-3.5 w-3.5" /> COMPARTIR SALA</p>
             <h2 className="mt-1 truncate font-medium">{title}</h2>
           </div>
-          <button onClick={onClose} className="text-neutral-500 hover:text-white" aria-label="Cerrar"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="text-neutral-400 hover:text-white" aria-label="Cerrar"><X className="h-5 w-5" /></button>
         </div>
         <QrCode value={url} className="mx-auto mt-5 aspect-square w-60" />
         <p className="mt-4 text-center font-mono text-4xl font-semibold tracking-[0.3em]">{code}</p>

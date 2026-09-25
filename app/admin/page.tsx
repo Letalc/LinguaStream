@@ -69,28 +69,28 @@ function CommandCenter({ adminKey, logout, role }: { adminKey: string; logout: (
             {/* eslint-disable-next-line @next/next/no-img-element -- static SVG brand asset */}
             <img src="/brand/mark.svg" alt="" width={28} height={28} className="h-7 w-7" />
             LinguaStream
-            <span className="font-mono text-sm font-normal normal-case text-accent/70">Production Command</span>
+            <span className="font-mono text-sm font-normal normal-case text-accent">Production Command</span>
             {role === "demo" && (
               <span className="rounded-sm border border-amber-500/40 px-2 py-0.5 font-mono text-[10px] tracking-[0.2em] text-amber-400">
                 DEMO
               </span>
             )}
           </h1>
-          <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.3em] text-neutral-500">
+          <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.3em] text-neutral-400">
             {sessions?.length ?? 0} sesiones {"//"} <span className="text-accent">{liveCount} en vivo</span>
             {grouped.problem.length > 0 && <span className="text-red-400"> {"//"} {grouped.problem.length} con problemas</span>}
           </p>
         </div>
         <div className="flex items-center gap-6">
           <div className="text-right">
-            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-neutral-500">Latencia global</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-neutral-400">Latencia global</p>
             <p className="font-mono text-sm text-accent">
               {globalLatency !== null ? `prom ${(globalLatency / 1000).toFixed(1)}s` : "—"}
             </p>
           </div>
           <button
             onClick={() => setSound((x) => !x)}
-            className="font-mono text-[11px] uppercase tracking-[0.25em] text-neutral-500 hover:text-white"
+            className="font-mono text-[11px] uppercase tracking-[0.25em] text-neutral-400 hover:text-white"
             title="Sonido de alertas" aria-label="Sonido de alertas"
           >
             {sound ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
@@ -110,7 +110,7 @@ function CommandCenter({ adminKey, logout, role }: { adminKey: string; logout: (
 
       {/* Conference filter bar */}
       <div className="flex flex-wrap items-center gap-2 border-b border-line/60 bg-black/20 px-6 py-3 lg:px-10">
-        <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-500 mr-2">
+        <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-400 mr-2">
           <Calendar className="h-3 w-3" /> Evento:
         </span>
         <button
@@ -174,7 +174,7 @@ function CommandCenter({ adminKey, logout, role }: { adminKey: string; logout: (
               <button type="submit" className="rounded bg-accent/20 border border-accent/40 px-2 py-0.5 font-mono text-xs text-accent">
                 Crear
               </button>
-              <button type="button" onClick={() => setCreatingConf(false)} className="px-1 text-xs text-neutral-500 hover:text-white">
+              <button type="button" onClick={() => setCreatingConf(false)} className="px-1 text-xs text-neutral-400 hover:text-white">
                 ✕
               </button>
             </form>
@@ -209,13 +209,13 @@ function CommandCenter({ adminKey, logout, role }: { adminKey: string; logout: (
 
       <div className="grid flex-1 gap-6 px-6 py-6 lg:grid-cols-[1fr_380px] lg:px-10">
         <main className="space-y-8">
-          {sessions === undefined && <p className="font-mono text-xs tracking-widest text-neutral-500">CARGANDO…</p>}
+          {sessions === undefined && <p className="font-mono text-xs tracking-widest text-neutral-400">CARGANDO…</p>}
           {visible.map((b) =>
             grouped[b.id].length === 0 || b.id === "ended" ? null : (
               <section key={b.id}>
                 <h2
                   className={`mb-3 font-mono text-[11px] uppercase tracking-[0.3em] ${
-                    b.id === "problem" ? "text-red-400" : b.id === "live" ? "text-accent" : "text-neutral-500"
+                    b.id === "problem" ? "text-red-400" : b.id === "live" ? "text-accent" : "text-neutral-400"
                   }`}
                 >
                   {b.label} · {grouped[b.id].length}
@@ -237,7 +237,7 @@ function CommandCenter({ adminKey, logout, role }: { adminKey: string; logout: (
             />
           )}
           {sessions && sessions.length === 0 && (
-            <p className="text-neutral-500">No hay sesiones. Creá la primera desde el panel de la derecha →</p>
+            <p className="text-neutral-400">No hay sesiones. Creá la primera desde el panel de la derecha →</p>
           )}
         </main>
 
@@ -249,7 +249,7 @@ function CommandCenter({ adminKey, logout, role }: { adminKey: string; logout: (
       </div>
 
       <footer className="flex items-center justify-between border-t border-line px-6 py-3 font-mono text-[10px] uppercase tracking-[0.3em] lg:px-10">
-        <span className="text-neutral-600">Nodos activos: {running.length}</span>
+        <span className="text-neutral-400">Nodos activos: {running.length}</span>
         {grouped.problem.length === 0 ? (
           <span className="flex items-center gap-2 text-accent"><Dot className="bg-accent" /> Todos los sistemas operativos</span>
         ) : (
