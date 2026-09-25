@@ -36,7 +36,7 @@ function CommandCenter({ adminKey, logout, role }: { adminKey: string; logout: (
   // Queries must not read the clock, so the page ticks `now` itself (drives "no signal").
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 2000);
+    const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
 

@@ -18,6 +18,7 @@ import { langLabel, type Lang } from "@/lib/langs";
 import { SubtitleFeed } from "@/components/SubtitleFeed";
 import { ShareDialog } from "@/components/ShareDialog";
 import { ArrowLeft, Hand, QrCode, TriangleAlert } from "@/components/ui/NeonIcon";
+import { compatibleRandomUUID } from "@/lib/crypto-compat";
 
 export default function ConsolePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -46,7 +47,7 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
   const setInterpreter = useMutation(api.sessions.setInterpreter);
 
   // A random id per tab: the backend lets only one console own a session.
-  const [consoleId] = useState(() => crypto.randomUUID());
+  const [consoleId] = useState(() => compatibleRandomUUID());
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [source, setSource] = useState<string>("tab");
   const [state, setState] = useState<StreamStatus | "idle" | "paused">("idle");
