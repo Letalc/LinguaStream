@@ -1,4 +1,4 @@
-# SPEC — Nerdearla Live Subs
+# SPEC — LinguaStream
 
 ### Arquitectura
 ```

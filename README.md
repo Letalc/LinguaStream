@@ -1,4 +1,4 @@
-# Nerdearla Live Subs
+# LinguaStream
 
 [English version](README.en.md)
 
@@ -43,8 +43,8 @@ La implementación abre una conexión Gemini por idioma de salida. La primera co
 ## Puesta en marcha
 
 ```bash
-git clone https://github.com/Letalc/nerdearla-live-subs.git
-cd nerdearla-live-subs
+git clone https://github.com/Letalc/LinguaStream.git
+cd LinguaStream
 npm install
 npx convex dev
 ```
