@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0b0d10;
+  --background: #07090b;
   --foreground: #eef1f4;
 }
 
@@ -10,6 +10,11 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  /* "Production Command" palette */
+  --color-accent: #3fd8e0;
+  --color-panel: #0c0f12;
+  --color-line: #1c2127;
+  --color-danger: #ef4444;
 }
 
 body {
@@ -22,3 +27,9 @@ body {
 body:has(.overlay-root) {
   background: transparent;
 }
+
+@keyframes toast-in {
+  from { transform: translateY(-8px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.toast-in { animation: toast-in 180ms ease-out; }

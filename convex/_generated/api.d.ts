@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as crons from "../crons.js";
+import type * as events from "../events.js";
 import type * as gemini from "../gemini.js";
 import type * as glossary from "../glossary.js";
 import type * as lib_auth from "../lib/auth.js";
@@ -21,6 +23,8 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  crons: typeof crons;
+  events: typeof events;
   gemini: typeof gemini;
   glossary: typeof glossary;
   "lib/auth": typeof lib_auth;

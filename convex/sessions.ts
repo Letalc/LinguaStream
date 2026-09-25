@@ -1,6 +1,6 @@
 import { ConvexError, v } from "convex/values";
 import { internalMutation, internalQuery, mutation, query, MutationCtx } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
+import { Doc, Id } from "./_generated/dataModel";
 import { langValidator, statusValidator } from "./schema";
 import { DEMO_MAX_LIVE_SESSIONS, requireAdmin } from "./lib/auth";
 
@@ -75,6 +75,7 @@ export const create = mutation({
       code: await uniqueCode(ctx),
       createdBy: role,
     });
+    await ctx.db.insert("events", { sessionId, title: fields.title, room: fields.room, type: "created" });
     await ctx.db.insert("sessionStats", {
       sessionId,
       lastHeartbeatAt: 0,
@@ -173,6 +174,7 @@ export const setStatus = mutation({
   handler: async (ctx, { key, sessionId, consoleId, status, error }) => {
     requireAdmin(key);
     const session = await mustOwn(ctx, sessionId, consoleId);
+    await logTransition(ctx, session, status, error);
     const patch: Partial<typeof session> = { status };
     if (status === "live" && session.startedAt === undefined) patch.startedAt = Date.now();
     if (status === "ended") patch.endedAt = Date.now();
@@ -212,6 +214,31 @@ export const heartbeat = mutation({
 });
 
 // ---------- helpers ----------
+
+/** Writes an alert-log entry when the room's status actually changes (errors always). */
+async function logTransition(
+  ctx: MutationCtx,
+  session: Doc<"sessions">,
+  next: Doc<"sessions">["status"],
+  error: string | undefined,
+) {
+  const prev = session.status;
+  let type: Doc<"events">["type"] | null = null;
+  if (next === "error") type = "error";
+  else if (next === prev) type = null;
+  else if (next === "live") type = prev === "reconnecting" || prev === "error" ? "recovered" : prev === "paused" ? null : "started";
+  else if (next === "reconnecting") type = "reconnecting";
+  else if (next === "paused") type = "paused";
+  else if (next === "ended") type = "ended";
+  if (!type) return;
+  await ctx.db.insert("events", {
+    sessionId: session._id,
+    title: session.title,
+    room: session.room,
+    type,
+    message: error?.slice(0, 300),
+  });
+}
 
 async function mustGet(ctx: MutationCtx, sessionId: Id<"sessions">) {
   const session = await ctx.db.get("sessions", sessionId);
@@ -302,3 +329,34 @@ async function uniqueCode(ctx: MutationCtx): Promise<string> {
     if (!taken) return code;
   }
 }
+
+// Cron: a running room whose console vanished (laptop closed, crash) never reports it.
+// After 60 s without heartbeat, mark it as error and log an alert so production knows.
+const NO_SIGNAL_MS = 60_000;
+export const markStale = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    let marked = 0;
+    for (const status of ["live", "reconnecting", "paused"] as const) {
+      const rooms = await ctx.db
+        .query("sessions")
+        .withIndex("by_status", (q) => q.eq("status", status))
+        .take(200);
+      for (const room of rooms) {
+        const stats = await getStats(ctx, room._id);
+        if (!stats || now - stats.lastHeartbeatAt < NO_SIGNAL_MS) continue;
+        const message = "Sin señal: la consola dejó de responder";
+        await ctx.db.patch("sessions", room._id, { status: "error" });
+        await ctx.db.patch("sessionStats", stats._id, {
+          errorCount: stats.errorCount + 1,
+          lastError: message,
+          lastErrorAt: now,
+        });
+        await ctx.db.insert("events", { sessionId: room._id, title: room.title, room: room.room, type: "error", message });
+        marked++;
+      }
+    }
+    return marked;
+  },
+});

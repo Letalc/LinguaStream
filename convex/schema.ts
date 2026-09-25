@@ -68,6 +68,23 @@ export default defineSchema({
     lastErrorAt: v.optional(v.number()),
   }).index("by_sessionId", ["sessionId"]),
 
+  // Operational alert log for the production dashboard (status transitions).
+  events: defineTable({
+    sessionId: v.id("sessions"),
+    title: v.string(), // denormalized so the log survives session deletion
+    room: v.string(),
+    type: v.union(
+      v.literal("created"),
+      v.literal("started"),
+      v.literal("recovered"),
+      v.literal("reconnecting"),
+      v.literal("paused"),
+      v.literal("error"),
+      v.literal("ended"),
+    ),
+    message: v.optional(v.string()),
+  }),
+
   // Event-wide glossary: technical terms and proper names.
   glossary: defineTable({
     term: v.string(),
