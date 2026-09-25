@@ -184,7 +184,7 @@ test("replaces a translation connection that goes mute while the speaker keeps t
   const clock = new SpeechClock();
   const { stream, status } = createTranslationOnly(clock);
   await stream.start();
-  await speak(stream, clock, 9000, true);
+  await speak(stream, clock, 21000, true);
   expect(sdk.connect).toHaveBeenCalledTimes(2);
   expect(status).toHaveBeenCalledWith("reconnecting", expect.stringContaining("sin texto"));
   expect(sdk.connect.mock.calls[1][0].config.sessionResumption.handle).toBeUndefined();
@@ -195,7 +195,7 @@ test("does not reconnect during music or noise without a transcript", async () =
   const clock = new SpeechClock();
   const { stream } = createTranslationOnly(clock);
   await stream.start();
-  await speak(stream, clock, 20000, false);
+  await speak(stream, clock, 40000, false);
   expect(sdk.connect).toHaveBeenCalledTimes(1);
 });
 
@@ -204,8 +204,24 @@ test("does not reconnect a translation that keeps answering", async () => {
   const { stream } = createTranslationOnly(clock);
   await stream.start();
   let n = 0;
-  await speak(stream, clock, 30000, true, () => {
+  await speak(stream, clock, 60000, true, () => {
     if (++n % 30 === 0) connections[0].callbacks.onmessage({ serverContent: { outputTranscription: { text: "hola " } } });
   });
   expect(sdk.connect).toHaveBeenCalledTimes(1);
+});
+
+test("backs off when Gemini rejects connections right after opening", async () => {
+  const { stream } = createStream();
+  await stream.start();
+  // Every new socket is closed immediately, like a concurrent-session quota rejection.
+  sdk.connect.mockImplementation(async ({ callbacks }: { callbacks: Callbacks }) => {
+    const result = connection(callbacks);
+    connections.push(result);
+    setTimeout(() => callbacks.onclose({ code: 1011, reason: "You exceeded your current quota" }), 0);
+    return result;
+  });
+  connections[0].close();
+  await vi.advanceTimersByTimeAsync(10000);
+  // Without backoff this would loop hundreds of times in 10 s; with 2 s, 4 s... it is a handful.
+  expect(sdk.connect.mock.calls.length).toBeLessThanOrEqual(5);
 });
