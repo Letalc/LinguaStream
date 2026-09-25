@@ -112,6 +112,15 @@ Al escanear el QR, el público elige su idioma o **Accesible · personas sordas 
 
 ## Salidas para público y producción
 
+El QR de cada sala ofrece tres salidas. Elegí según dónde se va a ver el texto:
+
+| Opción | Qué muestra | Para quién |
+| --- | --- | --- |
+| **Proyectar en pantalla** | El QR y el código de la sala | Para que el público entre desde el celular |
+| **Presentación + CC** | Las diapositivas con los subtítulos encima | La pantalla grande de la sala: el público lee slides y traducción juntas, las personas sordas o con hipoacusia siguen la charla sin mirar el celular, y producción puede capturarla para el stream |
+| **Overlay OBS/vMix** | Solo los subtítulos, con fondo transparente | Técnicos de streaming que ya mezclan cámara y slides |
+
+
 - `/s/[sessionId]`: vista personal para celulares y computadoras.
 - `/share/[sessionId]`: QR y código de sala para el proyector.
 - `/present/[sessionId]` (**Presentación + CC**): abrila en la compu del proyector, tocá **Elegir presentación**, seleccioná la ventana de las diapositivas (PowerPoint, Keynote, Google Slides) y después **Pantalla completa**. La página muestra las diapositivas con los subtítulos encima; el idioma se cambia arriba. La consola de la sala tiene que estar transmitiendo.
