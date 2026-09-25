@@ -24,9 +24,9 @@ export function EmptyLangHint({
   className?: string;
 }) {
   const isSource = lang === session.sourceLang;
-  const running = session.status === "live" || session.status === "reconnecting" || session.status === "paused";
-  const mine = useQuery(api.segments.feed, isSource || !running ? "skip" : { sessionId, lang, limit: 100 });
-  const source = useQuery(api.segments.feed, isSource || !running ? "skip" : { sessionId, lang: session.sourceLang, limit: 3 });
+  const started = session.status !== "idle"; // live, paused, reconnecting, error or ended
+  const mine = useQuery(api.segments.feed, isSource || !started ? "skip" : { sessionId, lang, limit: 100 });
+  const source = useQuery(api.segments.feed, isSource || !started ? "skip" : { sessionId, lang: session.sourceLang, limit: 3 });
   if (!mine || !source) return null;
   const empty = mine.lines.length === 0 && !mine.partial;
   if (!empty || source.lines.length < 2) return null;
