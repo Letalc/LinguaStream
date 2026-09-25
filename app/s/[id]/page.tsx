@@ -10,6 +10,7 @@ import { LANGS, isLang, type Lang } from "@/lib/langs";
 import { useWakeLock } from "@/lib/useWakeLock";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
 import { LagIndicator } from "@/components/LagIndicator";
+import { SpeakLines } from "@/components/SpeakLines";
 
 const SIZES = ["text-lg", "text-2xl", "text-4xl"];
 
@@ -20,6 +21,8 @@ export default function AudiencePage({ params }: { params: Promise<{ id: string 
   const [lang, setLang] = useState<Lang | null>(null);
   const [size, setSize] = useState(1);
   const [contrast, setContrast] = useState(false);
+  const [chosen, setChosen] = useState(false); // language explicitly picked on this device
+  const [speak, setSpeak] = useState(false);
   useWakeLock();
 
   // Remember the viewer's preferences on this device.
@@ -30,7 +33,10 @@ export default function AudiencePage({ params }: { params: Promise<{ id: string 
         const p = JSON.parse(saved);
         if (typeof p.size === "number") setSize(p.size);
         if (typeof p.contrast === "boolean") setContrast(p.contrast);
-        if (isLang(p.lang)) setLang(p.lang);
+        if (isLang(p.lang)) {
+          setLang(p.lang);
+          setChosen(true);
+        }
       }
     } catch {}
   }, []);
@@ -46,6 +52,33 @@ export default function AudiencePage({ params }: { params: Promise<{ id: string 
   const available = [session.sourceLang, ...session.targetLangs];
   // Default: Spanish if available (Nerdearla's audience), else the original language.
   const current: Lang = lang && available.includes(lang) ? lang : available.includes("es") ? "es" : session.sourceLang;
+
+  if (!chosen) {
+    return (
+      <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6">
+        <p className="font-mono text-[11px] tracking-[0.3em] text-cyan-300">● {session.code ?? "EN VIVO"}</p>
+        <h1 className="mt-2 text-2xl font-semibold">{session.title}</h1>
+        <p className="mt-1 text-sm text-neutral-400">{session.room}{session.speaker && ` · ${session.speaker}`}</p>
+        <p className="mt-10 text-neutral-300">¿En qué idioma querés los subtítulos?</p>
+        <div className="mt-4 space-y-3">
+          {LANGS.filter((l) => available.includes(l.code)).map((l) => (
+            <button
+              key={l.code}
+              onClick={() => {
+                setLang(l.code);
+                setChosen(true);
+              }}
+              className="flex w-full items-center gap-4 rounded-2xl border border-neutral-800 bg-neutral-950 px-5 py-4 text-left text-lg hover:border-cyan-300"
+            >
+              <span className="text-3xl">{l.flag}</span>
+              <span className="flex-1">{l.label}</span>
+              {l.code === session.sourceLang && <span className="text-xs text-neutral-500">original</span>}
+            </button>
+          ))}
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className={`flex h-dvh flex-col ${contrast ? "bg-black text-yellow-300" : ""}`}>
@@ -78,10 +111,19 @@ export default function AudiencePage({ params }: { params: Promise<{ id: string 
             <button aria-label="Achicar texto" className="rounded border border-neutral-700 px-2" onClick={() => setSize((s) => Math.max(0, s - 1))}>A−</button>
             <button aria-label="Agrandar texto" className="rounded border border-neutral-700 px-2" onClick={() => setSize((s) => Math.min(SIZES.length - 1, s + 1))}>A+</button>
             <button aria-label="Alto contraste" className="rounded border border-neutral-700 px-2" onClick={() => setContrast((c) => !c)}>◐</button>
+            <button
+              aria-label="Escuchar la traducción"
+              aria-pressed={speak}
+              className={`rounded border px-2 ${speak ? "border-cyan-300 text-cyan-300" : "border-neutral-700"}`}
+              onClick={() => setSpeak((x) => !x)}
+            >
+              🔊
+            </button>
           </div>
         </div>
       </header>
       <SubtitleFeed sessionId={sessionId} lang={current} className={`flex-1 px-4 py-4 ${SIZES[size]}`} limit={100} />
+      {speak && <SpeakLines sessionId={sessionId} lang={current} />}
       <footer className="flex items-center gap-4 border-t border-neutral-800 px-4 py-2 text-sm">
         {session.status === "ended" ? (
           <>

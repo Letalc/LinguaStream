@@ -16,6 +16,7 @@ import {
 import { startCapture, listInputDevices } from "@/lib/audio-capture";
 import { langLabel, type Lang } from "@/lib/langs";
 import { SubtitleFeed } from "@/components/SubtitleFeed";
+import { ShareDialog } from "@/components/ShareDialog";
 
 export default function ConsolePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -52,6 +53,7 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
   const [inputLabel, setInputLabel] = useState("");
   const [debug, setDebug] = useState<string[]>([]);
   const [showDebug, setShowDebug] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   const streams = useRef<LiveTranslateStream[]>([]);
   const capture = useRef<{ stop: () => void } | null>(null);
@@ -196,6 +198,14 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
             {session.targetLangs.length > 0 && ` → ${session.targetLangs.map(langLabel).join(", ")}`}
           </p>
         </div>
+        {session.code && (
+          <button
+            onClick={() => setSharing(true)}
+            className="ml-auto rounded-lg bg-cyan-300 px-4 py-2 font-mono text-sm font-semibold tracking-widest text-black"
+          >
+            QR · {session.code}
+          </button>
+        )}
         <span className="flex items-center gap-2 rounded-full border border-neutral-800 px-3 py-1 text-sm">
           <span className={`h-2.5 w-2.5 rounded-full ${STATUS_STYLE[state] ?? "bg-neutral-700"}`} />
           {state}
@@ -274,6 +284,9 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
         <Link className="underline" href={`/overlay/${sessionId}?lang=${session.targetLangs[0] ?? session.sourceLang}`} target="_blank">Overlay OBS</Link>
         <button className="underline" onClick={() => setShowDebug((x) => !x)}>Debug</button>
       </div>
+      {sharing && session.code && (
+        <ShareDialog sessionId={sessionId} code={session.code} title={session.title} onClose={() => setSharing(false)} />
+      )}
       {showDebug && (
         <pre className="mt-3 max-h-80 overflow-auto rounded-lg bg-neutral-950 p-3 text-xs text-neutral-400">
           {debug.join("\n")}

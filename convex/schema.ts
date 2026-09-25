@@ -26,7 +26,11 @@ export default defineSchema({
     endedAt: v.optional(v.number()),
     nextSeq: v.number(), // counter for final source segments
     consoleId: v.optional(v.string()), // random id of the console tab that owns the session
-  }).index("by_status", ["status"]),
+    code: v.optional(v.string()), // short room code for the audience, e.g. "K7Q2" (QR / link)
+    createdBy: v.optional(v.union(v.literal("admin"), v.literal("demo"))),
+  })
+    .index("by_status", ["status"])
+    .index("by_code", ["code"]),
 
   // Immutable, finalized subtitle lines. Source lines and their translations share `seq`.
   segments: defineTable({

@@ -2,27 +2,54 @@
 
 import { useQuery } from "convex/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { langLabel } from "@/lib/langs";
 
+/** Audience landing: type the room code shown on the projector, or pick a live talk. */
 export default function Home() {
   const sessions = useQuery(api.sessions.list);
+  const router = useRouter();
+  const [code, setCode] = useState("");
+  const live = sessions?.filter((s) => s.status === "live" || s.status === "reconnecting" || s.status === "paused") ?? [];
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-10">
-      <h1 className="text-3xl font-semibold tracking-tight">Subtítulos en vivo</h1>
-      <p className="mt-2 text-neutral-400">
-        Elegí la charla y el idioma. Los subtítulos aparecen en tiempo real en tu celular.
+    <main className="mx-auto w-full max-w-xl px-4 py-12">
+      <p className="font-mono text-[11px] tracking-[0.3em] text-cyan-300">● SUBTÍTULOS EN VIVO</p>
+      <h1 className="mt-3 text-4xl font-semibold tracking-tight">Entendé cada charla, en tu idioma.</h1>
+      <p className="mt-3 text-neutral-400">
+        Transcripción y traducción simultánea con IA. Sin registro: ingresá el código de la sala o escaneá el QR.
       </p>
 
-      <ul className="mt-8 space-y-3">
+      <form
+        className="mt-8 flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const c = code.trim().toUpperCase();
+          if (c) router.push(`/r/${c}`);
+        }}
+      >
+        <input
+          value={code}
+          onChange={(e) => setCode(e.target.value.toUpperCase().slice(0, 6))}
+          placeholder="CÓDIGO"
+          autoCapitalize="characters"
+          autoComplete="off"
+          className="min-w-0 flex-1 rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-4 text-center font-mono text-2xl tracking-[0.4em] placeholder:text-neutral-700"
+        />
+        <button className="rounded-xl bg-cyan-300 px-6 font-mono font-semibold tracking-widest text-black">ENTRAR</button>
+      </form>
+
+      <h2 className="mt-12 font-mono text-[11px] tracking-[0.3em] text-neutral-500">EN VIVO AHORA</h2>
+      <ul className="mt-3 space-y-2">
         {sessions === undefined && <li className="text-neutral-500">Cargando…</li>}
-        {sessions?.length === 0 && <li className="text-neutral-500">Todavía no hay sesiones.</li>}
-        {sessions?.map((s) => (
+        {sessions && live.length === 0 && <li className="text-sm text-neutral-500">No hay charlas en vivo en este momento.</li>}
+        {live.map((s) => (
           <li key={s._id}>
             <Link
               href={`/s/${s._id}`}
-              className="flex items-center justify-between gap-4 rounded-2xl border border-neutral-800 bg-neutral-950 p-4 hover:border-neutral-600"
+              className="flex items-center justify-between gap-4 rounded-xl border border-neutral-800 bg-neutral-950 p-4 hover:border-neutral-600"
             >
               <div className="min-w-0">
                 <p className="truncate font-medium">{s.title}</p>
@@ -31,19 +58,15 @@ export default function Home() {
                   {s.speaker && ` · ${s.speaker}`} · {[s.sourceLang, ...s.targetLangs].map(langLabel).join(" / ")}
                 </p>
               </div>
-              {s.status === "live" || s.status === "reconnecting" ? (
-                <span className="flex shrink-0 items-center gap-1.5 text-sm text-red-400">
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" /> EN VIVO
-                </span>
-              ) : (
-                <span className="shrink-0 text-sm text-neutral-500">{s.status === "ended" ? "Finalizada" : "Próximamente"}</span>
-              )}
+              <span className="flex shrink-0 items-center gap-1.5 font-mono text-xs text-red-400">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" /> {s.code ?? "LIVE"}
+              </span>
             </Link>
           </li>
         ))}
       </ul>
-      <p className="mt-12 text-center text-xs text-neutral-600">
-        Open source · <Link href="/admin" className="underline">Producción</Link>
+      <p className="mt-16 text-center text-xs text-neutral-600">
+        Open source · Gemini Live · <Link href="/admin" className="underline">Acceso Host</Link>
       </p>
     </main>
   );

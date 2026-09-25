@@ -1,8 +1,8 @@
 import { ConvexError, v } from "convex/values";
-import { internalQuery, mutation, query, MutationCtx } from "./_generated/server";
+import { internalMutation, internalQuery, mutation, query, MutationCtx } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { langValidator, statusValidator } from "./schema";
-import { requireAdmin } from "./lib/auth";
+import { DEMO_MAX_LIVE_SESSIONS, requireAdmin } from "./lib/auth";
 
 // ---------- Public reads (audience, overlay, dashboard) ----------
 
@@ -65,13 +65,15 @@ export const create = mutation({
     targetLangs: v.array(langValidator),
   },
   handler: async (ctx, { key, ...fields }) => {
-    requireAdmin(key);
+    const role = requireAdmin(key);
     const targetLangs = [...new Set(fields.targetLangs)].filter((l) => l !== fields.sourceLang);
     const sessionId = await ctx.db.insert("sessions", {
       ...fields,
       targetLangs,
       status: "idle",
       nextSeq: 0,
+      code: await uniqueCode(ctx),
+      createdBy: role,
     });
     await ctx.db.insert("sessionStats", {
       sessionId,
@@ -89,7 +91,12 @@ export const create = mutation({
 export const remove = mutation({
   args: { key: v.string(), sessionId: v.id("sessions") },
   handler: async (ctx, { key, sessionId }) => {
-    requireAdmin(key);
+    const role = requireAdmin(key);
+    const target = await ctx.db.get("sessions", sessionId);
+    if (!target) return null;
+    if (role === "demo" && target.createdBy !== "demo") {
+      throw new ConvexError("Demo mode can only delete sessions created in demo mode");
+    }
     // Delete a bounded batch of children; enough for a demo-sized talk.
     for (const seg of await ctx.db
       .query("segments")
@@ -127,8 +134,20 @@ export const claim = mutation({
     force: v.boolean(),
   },
   handler: async (ctx, { key, sessionId, consoleId, force }) => {
-    requireAdmin(key);
+    const role = requireAdmin(key);
     const session = await mustGet(ctx, sessionId);
+    if (role === "demo" && session.status !== "live") {
+      const live = await ctx.db
+        .query("sessions")
+        .withIndex("by_status", (q) => q.eq("status", "live"))
+        .take(DEMO_MAX_LIVE_SESSIONS);
+      if (live.length >= DEMO_MAX_LIVE_SESSIONS) {
+        return {
+          ok: false as const,
+          reason: `Demo mode allows ${DEMO_MAX_LIVE_SESSIONS} live rooms at a time. Stop one first`,
+        };
+      }
+    }
     const stats = await getStats(ctx, sessionId);
     const ownerAlive =
       session.consoleId !== undefined &&
@@ -223,14 +242,63 @@ export const getInternal = internalQuery({
 });
 
 // Lets the admin UI validate the password before storing it locally.
+// Returns the role ("admin" | "demo") or null.
 export const checkKey = query({
   args: { key: v.string() },
   handler: async (_ctx, { key }) => {
     try {
-      requireAdmin(key);
-      return true;
+      return requireAdmin(key);
     } catch {
-      return false;
+      return null;
     }
   },
 });
+
+export const demoAvailable = query({
+  args: {},
+  handler: async () => process.env.DEMO_MODE === "true",
+});
+
+// Audience entry point: /r/K7Q2 → session.
+export const getByCode = query({
+  args: { code: v.string() },
+  handler: async (ctx, { code }) => {
+    const clean = code.trim().toUpperCase();
+    if (!clean) return null;
+    const session = await ctx.db
+      .query("sessions")
+      .withIndex("by_code", (q) => q.eq("code", clean))
+      .first();
+    return session ? { _id: session._id, title: session.title } : null;
+  },
+});
+
+// One-off migration: give pre-existing sessions a room code.
+export const backfillCodes = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    let n = 0;
+    for (const s of await ctx.db.query("sessions").take(500)) {
+      if (!s.code) {
+        await ctx.db.patch("sessions", s._id, { code: await uniqueCode(ctx) });
+        n++;
+      }
+    }
+    return n;
+  },
+});
+
+// Unambiguous alphabet (no 0/O, 1/I/L) so codes read well off a projector.
+const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+async function uniqueCode(ctx: MutationCtx): Promise<string> {
+  for (;;) {
+    let code = "";
+    for (let i = 0; i < 4; i++) code += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
+    const taken = await ctx.db
+      .query("sessions")
+      .withIndex("by_code", (q) => q.eq("code", code))
+      .first();
+    if (!taken) return code;
+  }
+}
