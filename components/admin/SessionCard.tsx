@@ -6,7 +6,7 @@ import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { ShareDialog } from "@/components/ShareDialog";
 import { langLabel } from "@/lib/langs";
-import { statusChip, type DashboardSession } from "./health";
+import { formatElapsed, statusChip, type DashboardSession } from "./health";
 
 const CHIP_TONE = {
   live: "border-accent/40 text-accent",
@@ -45,7 +45,8 @@ export function SessionCard({ s, now, adminKey }: { s: DashboardSession; now: nu
         </span>
       </header>
 
-      <dl className="mt-4 grid grid-cols-4 gap-2">
+      <dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+        <Metric label="Transcurrido" value={formatElapsed(s.startedAt, s.endedAt, now)} />
         <Metric
           label="Latencia"
           value={s.stats?.avgLatencyMs != null ? `${(s.stats.avgLatencyMs / 1000).toFixed(1)}s` : "—"}
