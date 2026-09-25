@@ -37,6 +37,7 @@ export default defineSchema({
     code: v.optional(v.string()), // short room code for the audience, e.g. "K7Q2" (QR / link)
     createdBy: v.optional(v.union(v.literal("admin"), v.literal("demo"))),
     interpreterUrl: v.optional(v.string()), // live video of a human sign-language (LSA) interpreter
+    scheduledAt: v.optional(v.number()), // planned start (ms), optional, shown to the audience and the dashboard
   })
     .index("by_status", ["status"])
     .index("by_code", ["code"])

@@ -20,6 +20,8 @@ import { Doc, Id } from "@/convex/_generated/dataModel";
 import { toEmbedUrl } from "@/lib/embed";
 import { langLabel, type Lang } from "@/lib/langs";
 import { useStoredState } from "@/lib/useStoredState";
+import { EmptyLangHint } from "@/components/EmptyLangHint";
+import { formatStart } from "@/lib/startTime";
 
 /**
  * Reading view for deaf and hard-of-hearing people:
@@ -57,11 +59,13 @@ export function AccessibleView({
   sessionId,
   lang,
   onChange,
+  onSwitchLang,
 }: {
   session: Doc<"sessions">;
   sessionId: Id<"sessions">;
   lang: Lang;
   onChange: () => void;
+  onSwitchLang: (lang: Lang) => void;
 }) {
   const feed = useQuery(api.segments.feed, { sessionId, lang, limit: 100 });
   const [prefs, setPrefs] = useStoredState("live-subs-a11y", DEFAULT_PREFS, decodePreferences);
@@ -143,7 +147,14 @@ export function AccessibleView({
         className={`flex-1 overflow-y-auto px-5 py-6 leading-[1.5] ${SIZES[prefs.size]} ${paused ? "" : "flex flex-col justify-end"}`}
       >
         {feed === undefined && <p className={theme.muted}>Conectando…</p>}
-        {feed && lines.length === 0 && !feed.partial && <p className={theme.muted}>Esperando que empiece la charla…</p>}
+        <EmptyLangHint session={session} sessionId={sessionId} lang={lang} onSwitch={onSwitchLang} className="mb-4 text-lg" />
+        {feed && lines.length === 0 && !feed.partial && (
+          <p className={theme.muted}>
+            {session.status === "idle" && session.scheduledAt
+              ? `La charla empieza a las ${formatStart(session.scheduledAt)}`
+              : "Esperando que empiece la charla…"}
+          </p>
+        )}
         {shown.map((l, i) => (
           <p key={l.seq} className={`mb-4 ${!paused && i < shown.length - 1 && !feed?.partial ? "opacity-80" : ""}`}>
             {l.text}

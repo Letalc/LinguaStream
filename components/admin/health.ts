@@ -1,3 +1,4 @@
+import { formatStart } from "@/lib/startTime";
 import type { FunctionReturnType } from "convex/server";
 import type { api } from "@/convex/_generated/api";
 
@@ -52,6 +53,6 @@ export function statusChip(s: DashboardSession, now: number): { label: string; t
     case "ended":
       return { label: "Finalizada", tone: "muted" };
     default:
-      return { label: "Programada", tone: "muted" };
+      return { label: s.scheduledAt ? `Programada · ${formatStart(s.scheduledAt, now)}` : "Programada", tone: "muted" };
   }
 }
