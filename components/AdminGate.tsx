@@ -4,6 +4,7 @@ import { useQuery } from "convex/react";
 import { ReactNode, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { useAdminKey } from "@/lib/useAdminKey";
+import { Dot } from "@/components/ui/Dot";
 
 export type Role = "admin" | "demo";
 
@@ -26,7 +27,7 @@ export function AdminGate({
 
   return (
     <div className="mx-auto mt-24 w-full max-w-sm px-4">
-      <p className="font-mono text-[11px] tracking-[0.3em] text-cyan-300">● PRODUCTION COMMAND</p>
+      <p className="flex items-center gap-2 font-mono text-[11px] tracking-[0.3em] text-accent"><Dot className="bg-accent" pulse /> PRODUCTION COMMAND</p>
       <h1 className="mt-2 text-2xl font-semibold">Acceso Host</h1>
       <p className="mt-1 text-sm text-neutral-400">Creá salas, transmití el audio y compartí el QR con la audiencia.</p>
 

@@ -9,6 +9,8 @@ import { SessionCard } from "@/components/admin/SessionCard";
 import { AlertsFeed, AlertToasts } from "@/components/admin/Alerts";
 import { GlossaryPanel, NewSessionPanel } from "@/components/admin/SidePanels";
 import { BUCKETS, bucketOf, type Bucket } from "@/components/admin/health";
+import { Bell, BellOff, ExternalLink, LogOut } from "lucide-react";
+import { Dot } from "@/components/ui/Dot";
 
 export default function AdminPage() {
   return (
@@ -72,19 +74,19 @@ function CommandCenter({ adminKey, logout, role }: { adminKey: string; logout: (
           <button
             onClick={() => setSound((x) => !x)}
             className="font-mono text-[11px] uppercase tracking-[0.25em] text-neutral-500 hover:text-white"
-            title="Sonido de alertas"
+            title="Sonido de alertas" aria-label="Sonido de alertas"
           >
-            {sound ? "🔔" : "🔕"}
+            {sound ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
           </button>
           <Link
             href="/"
             target="_blank"
             className="border border-line px-4 py-2 font-mono text-[11px] uppercase tracking-[0.3em] hover:border-neutral-500"
           >
-            Vista pública
+            <span className="inline-flex items-center gap-2">Vista pública <ExternalLink className="h-3 w-3" /></span>
           </Link>
           <button onClick={logout} className="font-mono text-[11px] uppercase tracking-[0.3em] text-red-400 hover:text-red-300">
-            Salir
+            <span className="inline-flex items-center gap-2"><LogOut className="h-3.5 w-3.5" /> Salir</span>
           </button>
         </div>
       </header>
@@ -140,9 +142,9 @@ function CommandCenter({ adminKey, logout, role }: { adminKey: string; logout: (
       <footer className="flex items-center justify-between border-t border-line px-6 py-3 font-mono text-[10px] uppercase tracking-[0.3em] lg:px-10">
         <span className="text-neutral-600">Nodos activos: {running.length}</span>
         {grouped.problem.length === 0 ? (
-          <span className="text-accent">● Todos los sistemas operativos</span>
+          <span className="flex items-center gap-2 text-accent"><Dot className="bg-accent" /> Todos los sistemas operativos</span>
         ) : (
-          <span className="text-red-400">● {grouped.problem.length} sala(s) con problemas</span>
+          <span className="flex items-center gap-2 text-red-400"><Dot className="bg-red-500" pulse /> {grouped.problem.length} sala(s) con problemas</span>
         )}
       </footer>
     </div>

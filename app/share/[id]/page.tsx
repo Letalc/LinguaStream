@@ -7,6 +7,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { QrCode } from "@/components/QrCode";
 import { publicBaseUrl, roomUrl } from "@/lib/publicUrl";
 import { langLabel } from "@/lib/langs";
+import { Dot } from "@/components/ui/Dot";
 
 /** Full-screen slide for the room projector: "Scan for live subtitles". */
 export default function ProjectorPage({ params }: { params: Promise<{ id: string }> }) {
@@ -22,7 +23,7 @@ export default function ProjectorPage({ params }: { params: Promise<{ id: string
     <main className="flex min-h-dvh flex-col items-center justify-center gap-8 bg-black p-8 text-center lg:flex-row lg:gap-20">
       <QrCode value={roomUrl(session.code)} className="aspect-square w-[min(70vw,60vh)]" />
       <div className="max-w-xl">
-        <p className="font-mono text-sm tracking-[0.4em] text-cyan-300">● SUBTÍTULOS EN VIVO</p>
+        <p className="flex items-center gap-3 font-mono text-sm tracking-[0.4em] text-accent"><Dot className="h-2.5 w-2.5 bg-accent" pulse /> SUBTÍTULOS EN VIVO</p>
         <h1 className="mt-4 text-4xl font-semibold leading-tight lg:text-5xl">{session.title}</h1>
         <p className="mt-3 text-xl text-neutral-400">{langs}</p>
         <p className="mt-10 text-lg text-neutral-400">Escaneá el QR o entrá a</p>

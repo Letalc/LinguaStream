@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { langLabel } from "@/lib/langs";
+import { Dot } from "@/components/ui/Dot";
 
 /** Audience landing: type the room code shown on the projector, or pick a live talk. */
 export default function Home() {
@@ -16,7 +17,7 @@ export default function Home() {
 
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-12">
-      <p className="font-mono text-[11px] tracking-[0.3em] text-cyan-300">● SUBTÍTULOS EN VIVO</p>
+      <p className="flex items-center gap-2 font-mono text-[11px] tracking-[0.3em] text-accent"><Dot className="bg-accent" pulse /> SUBTÍTULOS EN VIVO</p>
       <h1 className="mt-3 text-4xl font-semibold tracking-tight">Entendé cada charla, en tu idioma.</h1>
       <p className="mt-3 text-neutral-400">
         Transcripción y traducción simultánea con IA. Sin registro: ingresá el código de la sala o escaneá el QR.
