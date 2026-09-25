@@ -1,0 +1,39 @@
+{
+  "date": "2026-09-25",
+  "deployment": "dev:veracious-caiman-681",
+  "outcome": "blocked_by_gemini_concurrent_quota",
+  "planned": {
+    "rooms": 10,
+    "connectionMinutes": 127.095,
+    "estimatedCostUsd": 4.677,
+    "maximumAuthorizedUsd": 5,
+    "languages": ["es", "en", "pt"]
+  },
+  "observed": {
+    "activeSeconds": 47,
+    "maximumTheoreticalCostUsd": 0.32,
+    "sessionsCreated": 10,
+    "sessionsWithFinalLines": 6,
+    "finalLineEventsInLog": 121,
+    "quotaErrorsInLog": 9,
+    "allSessionsCleanedUp": true,
+    "samples": [
+      {
+        "source": "en",
+        "targets": { "en": 8, "es": 7, "pt": 8 },
+        "first": { "en": "Welcome to Nerdearla.", "es": "Bienvenidos a Nerdearla.", "pt": "Bem-vindos à Nerdearla." }
+      },
+      {
+        "source": "es",
+        "targets": { "es": 8, "en": 9 },
+        "first": { "es": "Bienvenidas y bienvenidos a Nerdearla.", "en": "Welcome, everyone, to Nerdearla." }
+      },
+      {
+        "source": "pt",
+        "targets": { "pt": 6, "es": 6 },
+        "first": { "pt": "Bem-vindas e bem-vindos a Nerdearla.", "es": "Bienvenidas y bienvenidos a Nerdearla." }
+      }
+    ]
+  },
+  "conclusion": "The application created ten isolated rooms and produced correct ES/EN/PT samples, but the current Gemini project quota rejected part of the concurrent connections with WebSocket code 1011. A 30-minute, ten-room provider certification requires a quota increase or a smaller staged matrix."
+}

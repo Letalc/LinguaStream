@@ -25,6 +25,8 @@ type RoomSpec = { file: string; sourceLang: Lang; targetLangs: Lang[]; pcm: Buff
 const PRICE_PER_CONNECTION_MINUTE = Number(process.env.GEMINI_COST_PER_MINUTE_USD ?? "0.0368");
 const BUDGET_RESERVE_USD = 0.25;
 const DROP_EVERY_SECONDS = Number(process.env.DROP_EVERY_SECONDS ?? "0");
+const activeCleanups = new Set<() => Promise<void>>();
+let shuttingDown = false;
 
 const KEY = process.env.ADMIN_PASSWORD ?? "";
 const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL ?? readEnvLocal("NEXT_PUBLIC_CONVEX_URL");
@@ -87,6 +89,16 @@ async function simulateRoom(spec: RoomSpec, roomIndex: number) {
     () => void convex.mutation(api.sessions.heartbeat, { key: KEY, sessionId, consoleId }).catch(() => {}),
     5000,
   );
+  let cleaned = false;
+  const cleanup = async () => {
+    if (cleaned) return;
+    cleaned = true;
+    clearInterval(heartbeat);
+    await Promise.allSettled(streams.map((stream) => stream.stop()));
+    await Promise.allSettled([...writes]);
+    await convex.mutation(api.sessions.setStatus, { key: KEY, sessionId, consoleId, status: "ended" }).catch(() => null);
+  };
+  activeCleanups.add(cleanup);
 
   const silence = Buffer.alloc(3200);
   const CHUNK = 3200; // 100 ms of 16 kHz 16-bit audio
@@ -105,9 +117,8 @@ async function simulateRoom(spec: RoomSpec, roomIndex: number) {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
-  clearInterval(heartbeat);
-  await Promise.all(streams.map((s) => s.stop()));
-  await Promise.allSettled([...writes]);
+  await cleanup();
+  activeCleanups.delete(cleanup);
   console.log(`${tag} done → /s/${sessionId}`);
   return { sessionId, room, file, sourceLang, targetLangs, durationMs, counts, reconnects };
 }
@@ -150,6 +161,9 @@ if (estimatedCostUsd > maxCostUsd - BUDGET_RESERVE_USD) {
 if (process.env.CONFIRM_PAID_TEST !== "YES") throw new Error("Set CONFIRM_PAID_TEST=YES after reviewing the preflight");
 
 const startedAt = new Date().toISOString();
+for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  process.once(signal, () => void shutdown(signal));
+}
 Promise.all(parsed.map(simulateRoom))
   .then((rooms) => {
     const report = { startedAt, finishedAt: new Date().toISOString(), connectionMinutes, estimatedCostUsd, maxCostUsd, rooms };
@@ -160,6 +174,14 @@ Promise.all(parsed.map(simulateRoom))
     console.error(e);
     process.exit(1);
   });
+
+async function shutdown(signal: "SIGINT" | "SIGTERM") {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.error(`Received ${signal}; closing ${activeCleanups.size} active rooms...`);
+  await Promise.allSettled([...activeCleanups].map((cleanup) => cleanup()));
+  process.exit(signal === "SIGINT" ? 130 : 143);
+}
 
 function parseSpec(raw: string): RoomSpec {
   const [file, source = "en", targets = "es"] = raw.split(":");
