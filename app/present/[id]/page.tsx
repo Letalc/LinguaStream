@@ -64,7 +64,7 @@ function PresentationOutput({ sessionId }: { sessionId: Id<"sessions"> }) {
       <header className="mx-auto mb-4 flex max-w-7xl flex-wrap items-center gap-3 rounded-xl border border-neutral-800 bg-neutral-950 px-4 py-3">
         <div className="mr-auto min-w-48">
           <p className="font-medium">{session.title}</p>
-          <p className="text-xs text-neutral-500">Salida para proyector o captura de producción</p>
+          <p className="text-xs text-neutral-400">Salida para proyector o captura de producción</p>
         </div>
         <select value={lang} onChange={(event) => setPicked(event.target.value as Lang)} className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm">
           {LANGS.filter((item) => available.includes(item.code)).map((item) => <option key={item.code} value={item.code}>{item.label}</option>)}

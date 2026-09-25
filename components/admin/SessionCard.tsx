@@ -14,7 +14,7 @@ const CHIP_TONE = {
   warn: "border-amber-500/40 text-amber-400",
   danger: "border-danger/50 bg-danger/10 text-red-400",
   info: "border-sky-500/40 text-sky-400",
-  muted: "border-line text-neutral-500",
+  muted: "border-line text-neutral-400",
 };
 
 export function SessionCard({ s, now, adminKey }: { s: DashboardSession; now: number; adminKey: string }) {
@@ -34,7 +34,7 @@ export function SessionCard({ s, now, adminKey }: { s: DashboardSession; now: nu
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="truncate font-medium">{s.title}</h3>
-          <p className="mt-1 truncate font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-500">
+          <p className="mt-1 truncate font-mono text-[10px] uppercase tracking-[0.2em] text-neutral-400">
             {s.room} · {langLabel(s.sourceLang)} → {s.targetLangs.map((l) => l.toUpperCase()).join(" ") || "—"}
           </p>
         </div>
@@ -48,7 +48,11 @@ export function SessionCard({ s, now, adminKey }: { s: DashboardSession; now: nu
 
       {/* Columns adapt to the card width so labels never overlap. */}
       <dl className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] gap-2">
-        <Metric label="Tiempo" value={formatElapsed(s.startedAt, s.endedAt, now)} />
+        <Metric
+          label="Tiempo"
+          // A room in error has no end time: stop the clock at the console's last heartbeat.
+          value={formatElapsed(s.startedAt, s.endedAt ?? (s.status === "error" && s.stats?.lastHeartbeatAt ? s.stats.lastHeartbeatAt : undefined), now)}
+        />
         <Metric
           label="Latencia"
           value={s.stats?.avgLatencyMs != null ? `${(s.stats.avgLatencyMs / 1000).toFixed(1)}s` : "—"}
@@ -103,7 +107,7 @@ export function SessionCard({ s, now, adminKey }: { s: DashboardSession; now: nu
 function Metric({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
   return (
     <div className="min-w-0 rounded-sm border border-line bg-black/30 px-3 py-2">
-      <dt className="truncate font-mono text-[9px] uppercase tracking-[0.15em] text-neutral-500" title={label}>{label}</dt>
+      <dt className="truncate font-mono text-[9px] uppercase tracking-[0.15em] text-neutral-400" title={label}>{label}</dt>
       <dd className={`mt-1 truncate font-mono text-base ${warn ? "text-amber-400" : "text-neutral-100"}`}>{value}</dd>
     </div>
   );
@@ -126,7 +130,7 @@ export function DeleteButton({ adminKey, id }: { adminKey: string; id: Dashboard
   const [err, setErr] = useState<string | null>(null);
   return (
     <button
-      className={`ml-auto uppercase ${armed ? "text-red-400" : "text-neutral-600 hover:text-neutral-400"}`}
+      className={`ml-auto uppercase ${armed ? "text-red-400" : "text-neutral-400 hover:text-neutral-400"}`}
       title={err ?? undefined}
       onClick={() => {
         if (!armed) return setArmed(true);

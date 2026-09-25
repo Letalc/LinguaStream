@@ -10,8 +10,8 @@ import { Plus } from "lucide-react";
 import { Sparkles, X } from "@/components/ui/NeonIcon";
 
 const input =
-  "w-full rounded-sm border border-line bg-black/40 px-3 py-2.5 font-mono text-sm placeholder:text-neutral-600 focus:border-accent focus:outline-none";
-const label = "mb-1.5 block font-mono text-[10px] uppercase tracking-[0.25em] text-neutral-500";
+  "w-full rounded-sm border border-line bg-black/40 px-3 py-2.5 font-mono text-sm placeholder:text-neutral-500 focus:border-accent focus:outline-none";
+const label = "mb-1.5 block font-mono text-[10px] uppercase tracking-[0.25em] text-neutral-400";
 
 export function NewSessionPanel({ adminKey }: { adminKey: string }) {
   const create = useMutation(api.sessions.create);
@@ -112,7 +112,7 @@ export function GlossaryPanel({ adminKey }: { adminKey: string }) {
       <h2 className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.3em]">
         <span className="h-2 w-2 border border-neutral-400" /> Glosario del evento
       </h2>
-      <p className="mt-3 text-xs leading-relaxed text-neutral-500">
+      <p className="mt-3 text-xs leading-relaxed text-neutral-400">
         Términos técnicos y nombres propios. Mejoran el reconocimiento de voz y fuerzan la traducción en sesiones nuevas o reiniciadas.
       </p>
       <button
@@ -139,9 +139,9 @@ export function GlossaryPanel({ adminKey }: { adminKey: string }) {
         {terms?.map((t) => (
           <li key={t._id} className="flex items-center gap-2 rounded-sm border border-accent/30 px-2 py-1 font-mono text-[11px] text-accent">
             {t.term}
-            {t.translations?.es && <span className="text-neutral-500">→ {t.translations.es}</span>}
-            {t.sessionTitle && <span className="max-w-24 truncate text-neutral-600" title={t.sessionTitle}>@{t.sessionTitle}</span>}
-            <button className="text-neutral-500 hover:text-red-400" onClick={() => remove({ key: adminKey, id: t._id })} aria-label={`Quitar ${t.term}`}>
+            {t.translations?.es && <span className="text-neutral-400">→ {t.translations.es}</span>}
+            {t.sessionTitle && <span className="max-w-24 truncate text-neutral-400" title={t.sessionTitle}>@{t.sessionTitle}</span>}
+            <button className="text-neutral-400 hover:text-red-400" onClick={() => remove({ key: adminKey, id: t._id })} aria-label={`Quitar ${t.term}`}>
               <X className="h-3 w-3" />
             </button>
           </li>

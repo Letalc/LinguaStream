@@ -100,11 +100,11 @@ export function GlossaryImport({ adminKey, onClose }: { adminKey: string; onClos
               Subí las slides de la charla y Gemini arma el diccionario de términos: nombres, productos, siglas y jerga.
             </p>
           </div>
-          <button onClick={onClose} className="text-neutral-500 hover:text-white" aria-label="Cerrar"><X className="h-5 w-5" /></button>
+          <button onClick={onClose} className="text-neutral-400 hover:text-white" aria-label="Cerrar"><X className="h-5 w-5" /></button>
         </div>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-[auto_1fr]">
-          <label className="font-mono text-[10px] uppercase tracking-[0.25em] text-neutral-500 sm:pt-2.5">Aplica a</label>
+          <label className="font-mono text-[10px] uppercase tracking-[0.25em] text-neutral-400 sm:pt-2.5">Aplica a</label>
           <select
             value={scope}
             onChange={(e) => setScope(e.target.value)}
@@ -152,7 +152,7 @@ export function GlossaryImport({ adminKey, onClose }: { adminKey: string; onClos
               />
               <button disabled={!!busy} className={btn}>Extraer</button>
             </form>
-            <p className="text-xs text-neutral-600">PowerPoint / Keynote: exportá a PDF. Máximo 20 MB.</p>
+            <p className="text-xs text-neutral-400">PowerPoint / Keynote: exportá a PDF. Máximo 20 MB.</p>
           </div>
         )}
 
@@ -166,7 +166,7 @@ export function GlossaryImport({ adminKey, onClose }: { adminKey: string; onClos
 
         {candidates && candidates.length > 0 && (
           <>
-            <div className="mt-5 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.25em] text-neutral-500">
+            <div className="mt-5 flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.25em] text-neutral-400">
               <span>{candidates.filter((c) => c.selected).length} de {candidates.length} seleccionados</span>
               <button className="hover:text-white" onClick={() => setCandidates((cs) => cs && cs.map((c) => ({ ...c, selected: !cs.every((x) => x.selected) })))}>
                 Todos / ninguno
@@ -177,7 +177,7 @@ export function GlossaryImport({ adminKey, onClose }: { adminKey: string; onClos
                 <li key={c.term} className={`grid grid-cols-[auto_1fr_auto_8rem] items-center gap-3 rounded-sm px-2 py-1.5 ${c.selected ? "bg-black/30" : "opacity-40"}`}>
                   <input type="checkbox" className="accent-[#3fd8e0]" checked={c.selected} onChange={(e) => update(i, { selected: e.target.checked })} />
                   <span className="truncate text-sm">{c.term}</span>
-                  <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-neutral-500">{KIND_LABEL[c.kind] ?? c.kind}</span>
+                  <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-neutral-400">{KIND_LABEL[c.kind] ?? c.kind}</span>
                   <input
                     value={c.translations.es ?? ""}
                     onChange={(e) => update(i, { translations: { ...c.translations, es: e.target.value } })}

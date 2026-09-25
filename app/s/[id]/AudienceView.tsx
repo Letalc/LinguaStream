@@ -153,7 +153,7 @@ export function AudienceView({ id, initialSession }: { id: string; initialSessio
             ))}
           </>
         ) : (
-          <span className="text-xs text-neutral-500">Subtítulos generados por IA en tiempo real</span>
+          <span className="text-xs text-neutral-400">Subtítulos generados por IA en tiempo real</span>
         )}
         <span className="ml-auto">
           <LagIndicator sessionId={sessionId} lang={current} limit={100} />

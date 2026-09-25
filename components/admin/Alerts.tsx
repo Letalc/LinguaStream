@@ -33,19 +33,19 @@ export function AlertsFeed() {
     <section className="rounded-md border border-line bg-panel p-5">
       <h2 className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.3em] text-neutral-300"><TriangleAlert className="h-3.5 w-3.5" /> Alertas</h2>
       <ul className="mt-3 max-h-80 space-y-2 overflow-y-auto pr-1">
-        {events?.length === 0 && <li className="font-mono text-[11px] text-neutral-600">Sin eventos todavía.</li>}
+        {events?.length === 0 && <li className="font-mono text-[11px] text-neutral-400">Sin eventos todavía.</li>}
         {events?.map((e) => {
           const meta = EVENT_META[e.type] ?? { tone: "info" as Tone, label: e.type };
           return (
             <li key={e._id} className="border-l border-line pl-3">
               <p className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.2em]">
                 <span className={TONE_TEXT[meta.tone]}>{meta.label}</span>
-                <span className="text-neutral-600">{timeAgo(e._creationTime)}</span>
+                <span className="text-neutral-400">{timeAgo(e._creationTime)}</span>
               </p>
               <p className="truncate text-sm text-neutral-300">
-                {e.title} <span className="text-neutral-600">· {e.room}</span>
+                {e.title} <span className="text-neutral-400">· {e.room}</span>
               </p>
-              {e.message && <p className="truncate font-mono text-[11px] text-neutral-500">{e.message}</p>}
+              {e.message && <p className="truncate font-mono text-[11px] text-neutral-400">{e.message}</p>}
             </li>
           );
         })}
