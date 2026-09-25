@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="LinguaStream">
+  <rect width="64" height="64" rx="14" fill="#0c0f12"/>
+  <!-- sound waves -->
+  <path d="M37 45 q9 -4 12 -13" fill="none" stroke="#ffd23f" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M38 52 q14 -5 19 -20" fill="none" stroke="#3a86ff" stroke-width="3.2" stroke-linecap="round"/>
+  <!-- megaphone -->
+  <rect x="7" y="29" width="7" height="11" rx="2" fill="#e63946"/>
+  <path d="M14 29 L31 20 L31 49 L14 40 Z" fill="#e63946"/>
+  <ellipse cx="31" cy="34.5" rx="3.2" ry="14.5" fill="#b8202c"/>
+  <rect x="17" y="40" width="4" height="9" rx="2" fill="#e63946"/>
+  <!-- translation bubble -->
+  <circle cx="46" cy="18" r="13" fill="#3fd8e0"/>
+  <path d="M37 27 l-4 7 l8 -3 z" fill="#3fd8e0"/>
+  <text x="46" y="23" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="13" fill="#0c0f12">文A</text>
+</svg>

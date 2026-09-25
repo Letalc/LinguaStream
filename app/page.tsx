@@ -21,6 +21,8 @@ export default function Home() {
 
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-12">
+      {/* eslint-disable-next-line @next/next/no-img-element -- static SVG brand asset */}
+      <img src="/brand/logo.svg" alt="LinguaStream" width={120} height={77} className="mb-6 h-20 w-auto" />
       <p className="flex items-center gap-2 font-mono text-[11px] tracking-[0.3em] text-accent"><Dot className="bg-accent" pulse /> LINGUASTREAM · SUBTÍTULOS EN VIVO</p>
       <h1 className="mt-3 text-4xl font-semibold tracking-tight">Entendé cada charla, en tu idioma.</h1>
       <p className="mt-3 text-neutral-400">

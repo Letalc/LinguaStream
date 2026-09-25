@@ -66,7 +66,8 @@ function CommandCenter({ adminKey, logout, role }: { adminKey: string; logout: (
       <header className="flex flex-wrap items-center justify-between gap-4 border-b border-line px-6 py-5 lg:px-10">
         <div>
           <h1 className="flex items-center gap-3 text-xl font-bold uppercase tracking-tight">
-            <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-accent" />
+            {/* eslint-disable-next-line @next/next/no-img-element -- static SVG brand asset */}
+            <img src="/brand/mark.svg" alt="" width={28} height={28} className="h-7 w-7" />
             LinguaStream
             <span className="font-mono text-sm font-normal normal-case text-accent/70">Production Command</span>
             {role === "demo" && (

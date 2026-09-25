@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LinguaStream · Demo</title>
+<link rel="icon" href="/brand/mark.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&family=Geist+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  /* Deck for the demo video. Open it in a window and pick that window in "Presentación + CC".
+     The bottom ~24% of every slide is left empty: that is where the live captions are drawn. */
+  :root {
+    --bg: #05070a; --panel: #0c0f12; --line: #1c2127; --text: #e8edf2; --muted: #8b95a1;
+    --accent: #3fd8e0; --red: #e63946; --yellow: #ffd23f; --blue: #3a86ff;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; background: #000; color: var(--text); font-family: Geist, system-ui, sans-serif; overflow: hidden; }
+  .viewport { position: fixed; inset: 0; }
+  .stage { width: 1600px; height: 900px; position: absolute; left: 50%; top: 50%; transform-origin: center; }
+  .slide {
+    position: absolute; inset: 0; background: var(--bg); padding: 80px 110px 230px;
+    display: none; flex-direction: column; justify-content: center;
+    background-image: radial-gradient(circle at 85% 10%, rgba(63,216,224,.10), transparent 40%);
+  }
+  .slide.active { display: flex; }
+  .kicker { font-family: "Geist Mono", monospace; font-size: 22px; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); }
+  h1 { font-size: 96px; line-height: 1.02; letter-spacing: -.03em; font-weight: 700; }
+  h2 { font-size: 64px; line-height: 1.08; letter-spacing: -.02em; font-weight: 700; margin-top: 18px; }
+  p.lead { font-size: 34px; color: var(--muted); margin-top: 26px; max-width: 1150px; line-height: 1.35; }
+  .row { display: flex; gap: 28px; margin-top: 46px; }
+  .card { flex: 1; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 30px 32px; }
+  .card b { display: block; font-size: 30px; margin-bottom: 10px; }
+  .card span { font-size: 24px; color: var(--muted); line-height: 1.4; }
+  .num { font-family: "Geist Mono", monospace; color: var(--accent); font-size: 22px; letter-spacing: .2em; margin-bottom: 14px; display: block; }
+  .flow { display: flex; align-items: center; gap: 18px; margin-top: 50px; font-size: 28px; }
+  .flow .node { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 22px 26px; text-align: center; flex: 1; }
+  .flow .node small { display: block; color: var(--muted); font-size: 20px; margin-top: 6px; }
+  .flow .arrow { color: var(--accent); font-size: 36px; }
+  .langs { display: flex; gap: 16px; margin-top: 40px; }
+  .pill { font-family: "Geist Mono", monospace; font-size: 26px; border: 1px solid var(--line); border-radius: 999px; padding: 12px 26px; }
+  .pill.on { border-color: var(--accent); color: var(--accent); }
+  .title-wrap { display: flex; align-items: center; gap: 70px; }
+  .title-wrap img { width: 420px; }
+  .end { display: flex; align-items: center; gap: 80px; }
+  .end img { width: 300px; border-radius: 20px; background: #fff; padding: 14px; }
+  .links { font-family: "Geist Mono", monospace; font-size: 28px; line-height: 1.9; margin-top: 30px; }
+  .links b { color: var(--accent); font-weight: 600; }
+  .stack { margin-top: 34px; font-size: 24px; color: var(--muted); }
+  .hud { position: fixed; right: 18px; bottom: 14px; font: 13px "Geist Mono", monospace; color: #4a525c; }
+</style>
+</head>
+<body>
+<div class="viewport"><div class="stage" id="stage">
+
+  <section class="slide active">
+    <div class="title-wrap">
+      <img src="/brand/logo.svg" alt="" />
+      <div>
+        <div class="kicker">Nerdearla Vibeathon 2026</div>
+        <h1 style="margin-top:18px">LinguaStream</h1>
+        <p class="lead">Subtítulos y traducción en vivo para cada charla, en el celular de cada persona.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="kicker">El problema</div>
+    <h2>Una conferencia, muchos idiomas.<br />Parte del público se pierde la charla.</h2>
+    <div class="row">
+      <div class="card"><b>Oradores internacionales</b><span>Charlas en inglés o portugués frente a un público que habla español.</span></div>
+      <div class="card"><b>Personas sordas o con hipoacusia</b><span>Sin texto en pantalla, la charla no existe para ellas.</span></div>
+      <div class="card"><b>Varias salas a la vez</b><span>Producción necesita ver todas y reaccionar si algo falla.</span></div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="kicker">Cómo funciona</div>
+    <h2>Del micrófono al celular, en segundos</h2>
+    <div class="flow">
+      <div class="node">Audio de la sala<small>micrófono o pestaña</small></div><div class="arrow">→</div>
+      <div class="node">Gemini Live<small>transcribe y traduce</small></div><div class="arrow">→</div>
+      <div class="node">Convex<small>tiempo real</small></div><div class="arrow">→</div>
+      <div class="node">Público<small>celular · proyector · stream</small></div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="kicker">Para el público</div>
+    <h2>Escaneás el QR y elegís tu idioma</h2>
+    <div class="langs">
+      <span class="pill on">ES · Español</span><span class="pill">EN · English</span><span class="pill">PT · Português</span><span class="pill on">Accesible</span>
+    </div>
+    <div class="row">
+      <div class="card"><span class="num">01</span><b>Sin app ni registro</b><span>Link o código de 4 letras.</span></div>
+      <div class="card"><span class="num">02</span><b>Modo accesible</b><span>Letra grande, alto contraste, indicador de quién habla e intérprete de señas.</span></div>
+      <div class="card"><span class="num">03</span><b>Voz opcional</b><span>Lee la traducción en voz alta, siempre al presente.</span></div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="kicker">Para producción</div>
+    <h2>Todas las salas, en un solo panel</h2>
+    <div class="row">
+      <div class="card"><span class="num">EN VIVO</span><b>Latencia, público, errores</b><span>Alertas en tiempo real por sala.</span></div>
+      <div class="card"><span class="num">RESILIENTE</span><b>Reconexión automática</b><span>Si se corta la conexión, vuelve sola sin perder texto.</span></div>
+      <div class="card"><span class="num">ARCHIVO</span><b>SRT · VTT · TXT</b><span>La transcripción queda lista para el video de la charla.</span></div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <div class="end">
+      <img src="/demo/qr-app.svg" alt="QR a la app" />
+      <div>
+        <div class="kicker">Probalo ahora</div>
+        <h2>LinguaStream</h2>
+        <div class="links">
+          <div><b>App</b>&nbsp; linguastream-ten.vercel.app</div>
+          <div><b>Repo</b> github.com/Letalc/LinguaStream</div>
+        </div>
+        <div class="stack">Next.js · Convex · Gemini Live · Open source MIT</div>
+      </div>
+    </div>
+  </section>
+
+</div></div>
+<div class="hud" id="hud"></div>
+<script>
+  // Arrow keys / space / click to navigate, F for full screen. The stage scales to any window.
+  const slides = [...document.querySelectorAll(".slide")];
+  const stage = document.getElementById("stage");
+  const hud = document.getElementById("hud");
+  let i = Math.max(0, Math.min(slides.length - 1, Number(location.hash.slice(1)) - 1 || 0));
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, k) => s.classList.toggle("active", k === i));
+    hud.textContent = `${i + 1} / ${slides.length}`;
+    history.replaceState(null, "", `#${i + 1}`);
+  }
+  function fit() {
+    const k = Math.min(innerWidth / 1600, innerHeight / 900);
+    stage.style.transform = `translate(-50%, -50%) scale(${k})`;
+  }
+  addEventListener("resize", fit);
+  addEventListener("hashchange", () => show(Number(location.hash.slice(1)) - 1 || 0));
+  addEventListener("keydown", (e) => {
+    if (["ArrowRight", "PageDown", " ", "Enter"].includes(e.key)) show(i + 1);
+    if (["ArrowLeft", "PageUp", "Backspace"].includes(e.key)) show(i - 1);
+    if (e.key === "f" || e.key === "F") document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+  });
+  addEventListener("click", (e) => show(e.clientX > innerWidth / 3 ? i + 1 : i - 1));
+  fit(); show(i);
+</script>
+</body>
+</html>
