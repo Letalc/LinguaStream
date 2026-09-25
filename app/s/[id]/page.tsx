@@ -1,5 +1,7 @@
 "use client";
 
+import "@/lib/crypto-compat";
+
 import { useQuery } from "convex/react";
 import Link from "next/link";
 import { use, useState } from "react";
