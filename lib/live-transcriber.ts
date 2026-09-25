@@ -45,7 +45,9 @@ type Options = {
 const MAX_BUFFERED_CHUNKS = 50; // ~5 s of 100 ms audio chunks kept while reconnecting
 // Gemini sometimes keeps a connection open but stops returning text for one language.
 // If the speaker talks this long with no output at all, that connection is replaced.
-const STALL_VOICED_MS = 8000;
+const STALL_VOICED_MS = 20000;
+const STALL_COOLDOWN_MS = 60000; // after replacing a mute connection, give the new one time
+const QUICK_CLOSE_MS = 5000; // a socket closed this soon was most likely rejected (quota)
 
 export class LiveTranslateStream {
   private session: Session | null = null;
@@ -56,6 +58,9 @@ export class LiveTranslateStream {
   private lastTextAt = 0;
   private stopRequestedAt = 0;
   private voicedSinceOutputMs = 0; // speech heard since this connection last returned text
+  private stallCooldownUntil = 0;
+  private connectedAt = 0;
+  private quickCloses = 0; // consecutive rejections, drives the reconnect backoff
   private lastTickAt = 0;
   private inSeg: LineSegmenter | null;
   private outSeg: LineSegmenter;
@@ -121,7 +126,7 @@ export class LiveTranslateStream {
   private watchStall(now: number) {
     const dt = this.lastTickAt ? Math.min(500, now - this.lastTickAt) : 0;
     this.lastTickAt = now;
-    if (!this.session || this.reconnecting || this.stopped || this.stopRequestedAt) return;
+    if (!this.session || this.reconnecting || this.stopped || this.stopRequestedAt || now < this.stallCooldownUntil) return;
     // "Someone is talking" = the original transcript keeps arriving (music or noise don't count).
     // The stream that produces that transcript can only rely on the audio level, so it waits twice as long.
     const clock = this.opts.clock;
@@ -129,6 +134,7 @@ export class LiveTranslateStream {
     if (talking) this.voicedSinceOutputMs += dt;
     if (this.voicedSinceOutputMs < (this.inSeg && now - clock.lastTranscriptAt >= 3000 ? STALL_VOICED_MS * 2 : STALL_VOICED_MS)) return;
     this.voicedSinceOutputMs = 0;
+    this.stallCooldownUntil = now + STALL_COOLDOWN_MS;
     const stalled = this.session;
     this.session = null; // its onclose is ignored from now on
     this.resumeHandle = undefined; // resuming could bring back the same stuck state
@@ -140,6 +146,7 @@ export class LiveTranslateStream {
 
   /** Drops the connection on purpose — used by the console's "simulate drop" demo button. */
   simulateDrop() {
+    this.connectedAt = 0; // a deliberate drop is not a quota rejection: reconnect right away
     try {
       this.session?.close();
     } catch {}
@@ -171,7 +178,11 @@ export class LiveTranslateStream {
           if (this.session !== currentSession) return;
           console.warn("[live] closed", e?.code, e?.reason);
           this.session = null;
-          if (!this.stopped) void this.reconnect(e?.reason || `connection closed (${e?.code})`);
+          // Closed right after opening = rejected (usually the concurrent-session quota):
+          // back off instead of hammering Gemini, which only makes the quota worse.
+          this.quickCloses = Date.now() - this.connectedAt < QUICK_CLOSE_MS ? this.quickCloses + 1 : 0;
+          const delay = this.quickCloses ? Math.min(20000, 2000 * 2 ** (this.quickCloses - 1)) : 0;
+          if (!this.stopped) void this.reconnect(e?.reason || `connection closed (${e?.code})`, delay);
         },
       },
     });
@@ -184,16 +195,18 @@ export class LiveTranslateStream {
     this.session = currentSession;
     this.reconnecting = false;
     this.voicedSinceOutputMs = 0;
+    this.connectedAt = Date.now();
     this.opts.onStatus("live");
     const queued = this.pending;
     this.pending = [];
     for (const chunk of queued) this.send(chunk);
   }
 
-  private async reconnect(reason: string) {
+  private async reconnect(reason: string, delayMs = 0) {
     if (this.reconnecting || this.stopped) return;
     this.reconnecting = true;
     this.opts.onStatus("reconnecting", reason);
+    if (delayMs) await sleep(delayMs);
     let attempt = 0;
     while (!this.stopped) {
       try {
