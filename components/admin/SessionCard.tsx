@@ -6,6 +6,7 @@ import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { ShareDialog } from "@/components/ShareDialog";
 import { langLabel } from "@/lib/langs";
+import { openConsole } from "@/lib/windows";
 import { formatElapsed, statusChip, type DashboardSession } from "./health";
 
 const CHIP_TONE = {
@@ -73,7 +74,17 @@ export function SessionCard({ s, now, adminKey }: { s: DashboardSession; now: nu
       )}
 
       <footer className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 pt-4 font-mono text-[10px] uppercase tracking-[0.2em]">
-        <Link className="text-accent hover:underline" href={`/console/${s._id}`}>Consola</Link>
+        <a
+          className="text-accent hover:underline"
+          href={`/console/${s._id}`}
+          onClick={(e) => {
+            e.preventDefault();
+            openConsole(s._id);
+          }}
+          title="Abre la consola en su propia ventana; el panel sigue aquí"
+        >
+          Consola
+        </a>
         <Link className="text-neutral-400 hover:text-white" href={`/s/${s._id}`} target="_blank">Audiencia</Link>
         <Link className="text-neutral-400 hover:text-white" href={`/overlay/${s._id}?lang=${feedLang}`} target="_blank">Overlay</Link>
         <a className="text-neutral-400 hover:text-white" href={`/api/export/${s._id}?lang=${s.sourceLang}&format=srt`}>SRT</a>

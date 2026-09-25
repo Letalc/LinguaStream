@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "convex/react";
 import type { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { ADMIN_WINDOW } from "@/lib/windows";
 import { api } from "@/convex/_generated/api";
 import { AdminGate, type Role } from "@/components/AdminGate";
 import { SessionCard } from "@/components/admin/SessionCard";
@@ -24,6 +25,10 @@ export default function AdminPage() {
 }
 
 function CommandCenter({ adminKey, logout, role }: { adminKey: string; logout: () => void; role: Role }) {
+  // Named so consoles can bring this tab back instead of navigating away from the talk.
+  useEffect(() => {
+    window.name = ADMIN_WINDOW;
+  }, []);
   const [conferenceId, setConferenceId] = useState<Id<"conferences"> | null | undefined>(undefined);
   const [creatingConf, setCreatingConf] = useState(false);
   const [newConfName, setNewConfName] = useState("");
