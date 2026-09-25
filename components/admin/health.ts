@@ -16,6 +16,16 @@ export const BUCKETS: { id: Bucket; label: string }[] = [
 /** A running room whose console stopped sending heartbeats for this long is "no signal". */
 export const STALE_MS = 15_000;
 
+/** Formats a session duration without wrapping after 24 hours. */
+export function formatElapsed(startedAt: number | undefined, endedAt: number | undefined, now: number) {
+  if (startedAt === undefined) return "—";
+  const elapsedSeconds = Math.max(0, Math.floor(((endedAt ?? now) - startedAt) / 1000));
+  const hours = Math.floor(elapsedSeconds / 3600);
+  const minutes = Math.floor((elapsedSeconds % 3600) / 60);
+  const seconds = elapsedSeconds % 60;
+  return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":");
+}
+
 export function isStale(s: DashboardSession, now: number) {
   const running = s.status === "live" || s.status === "reconnecting" || s.status === "paused";
   return running && s.stats !== null && now - s.stats.lastHeartbeatAt > STALE_MS;
