@@ -112,6 +112,15 @@ After scanning the QR, attendees pick their language or **Accessible · deaf or 
 
 ## Audience and production outputs
 
+Each room's QR dialog offers three outputs. Pick by where the text will be seen:
+
+| Option | What it shows | For whom |
+| --- | --- | --- |
+| **Proyectar en pantalla** (project on screen) | The room QR and code | So the audience can join from their phones |
+| **Presentación + CC** (presentation + CC) | The slides with captions on top | The room's big screen: attendees read slides and translation together, deaf and hard-of-hearing people follow without a phone, and production can capture it for the stream |
+| **Overlay OBS/vMix** | Captions only, on a transparent background | Streaming technicians who already mix camera and slides |
+
+
 - `/s/[sessionId]`: personal view for phones and computers.
 - `/share/[sessionId]`: room QR and code for a projector.
 - `/present/[sessionId]` (**Presentation + CC**): open it on the projector computer, click **Elegir presentación** (choose presentation), select the slides window (PowerPoint, Keynote, Google Slides), then **Pantalla completa** (full screen). The page shows the slides with captions on top; switch the language at the top. The room console must be streaming.
