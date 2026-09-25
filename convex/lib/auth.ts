@@ -5,14 +5,10 @@ export type Role = "admin" | "demo";
 /** The key the "Enter as demo" button sends. Only valid when DEMO_MODE=true. */
 export const DEMO_KEY = "demo";
 
-// Demo limits protect the Gemini budget when the admin panel is open to judges.
-export const DEMO_MAX_LIVE_SESSIONS = 3;
-export const DEMO_MAX_SESSION_MS = 20 * 60 * 1000;
-
 /**
  * Minimal auth for a conference setup: production staff and room operators share one
  * password (ADMIN_PASSWORD env var in Convex). Viewers need nothing.
- * With DEMO_MODE=true, the key "demo" grants a limited role for one-click judge access.
+ * With DEMO_MODE=true, the key "demo" grants one-click judge access (it can only delete its own sessions).
  */
 export function requireAdmin(key: string): Role {
   const expected = process.env.ADMIN_PASSWORD;

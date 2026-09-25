@@ -2,7 +2,7 @@
 
 [Versión en español](README.md)
 
-**Live demo:** https://linguastream-ten.vercel.app · the `/admin` panel has an **Enter as demo** button (up to 3 live rooms, 20 minutes per session).
+**Live demo:** https://linguastream-ten.vercel.app · the `/admin` panel has an **Enter as demo** button.
 
 Live captions and translation for conferences, built with Next.js, Convex, and Gemini Live. Each room sends audio from a web console; attendees receive text in real time on their phones, while production can add the same captions to a projector, OBS, vMix, or the event stream.
 

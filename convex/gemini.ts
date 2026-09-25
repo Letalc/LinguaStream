@@ -5,7 +5,7 @@ import { ConvexError, v } from "convex/values";
 import { action, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Doc } from "./_generated/dataModel";
-import { DEMO_MAX_SESSION_MS, requireAdmin } from "./lib/auth";
+import { requireAdmin } from "./lib/auth";
 
 // Model names are configurable via Convex env vars so a conference can switch models
 // without touching code (`npx convex env set GEMINI_LIVE_MODEL ...`).
@@ -40,14 +40,11 @@ export const createLiveToken = action({
     ctx,
     { key, sessionId, targetLang },
   ): Promise<{ token: string; model: string; config: Record<string, unknown> }> => {
-    const role = requireAdmin(key);
+    requireAdmin(key);
     const session: Doc<"sessions"> | null = await ctx.runQuery(internal.sessions.getInternal, {
       sessionId,
     });
     if (!session) throw new ConvexError("Session not found");
-    if (role === "demo" && session.startedAt && Date.now() - session.startedAt > DEMO_MAX_SESSION_MS) {
-      throw new ConvexError("Demo sessions are limited to 20 minutes. Create a new session to keep testing.");
-    }
 
     const glossary: { term: string; translations?: Record<string, string> }[] =
       await ctx.runQuery(internal.glossary.listInternal, { sessionId });
