@@ -14,9 +14,9 @@ import type * as events from "../events.js";
 import type * as gemini from "../gemini.js";
 import type * as glossary from "../glossary.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as presence from "../presence.js";
 import type * as segments from "../segments.js";
 import type * as sessions from "../sessions.js";
-import type * as presence from "../presence.js";
 
 import type {
   ApiFromModules,
@@ -31,9 +31,9 @@ declare const fullApi: ApiFromModules<{
   gemini: typeof gemini;
   glossary: typeof glossary;
   "lib/auth": typeof lib_auth;
+  presence: typeof presence;
   segments: typeof segments;
   sessions: typeof sessions;
-  presence: typeof presence;
 }>;
 
 /**
@@ -62,4 +62,6 @@ export declare const internal: FilterApi<
   FunctionReference<any, "internal">
 >;
 
-export declare const components: {};
+export declare const components: {
+  presence: import("@convex-dev/presence/_generated/component.js").ComponentApi<"presence">;
+};
