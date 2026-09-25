@@ -5,13 +5,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { langLabel } from "@/lib/langs";
 import { Dot } from "@/components/ui/Dot";
 import { Ear } from "lucide-react";
 
 /** Audience landing: type the room code shown on the projector, or pick a live talk. */
 export default function Home() {
-  const sessions = useQuery(api.sessions.list);
+  const [conferenceId, setConferenceId] = useState<Id<"conferences"> | undefined>(undefined);
+  const conferences = useQuery(api.conferences.list);
+  const sessions = useQuery(api.sessions.list, { conferenceId });
   const router = useRouter();
   const [code, setCode] = useState("");
   const live = sessions?.filter((s) => s.status === "live" || s.status === "reconnecting" || s.status === "paused") ?? [];
@@ -46,6 +49,34 @@ export default function Home() {
         />
         <button className="rounded-xl bg-cyan-300 px-6 font-mono font-semibold tracking-widest text-black">ENTRAR</button>
       </form>
+
+      {conferences && conferences.length > 0 && (
+        <div className="mt-8 flex flex-wrap gap-2">
+          <button
+            onClick={() => setConferenceId(undefined)}
+            className={`rounded-full px-3 py-1 font-mono text-xs transition ${
+              conferenceId === undefined
+                ? "bg-accent/20 text-accent border border-accent/40"
+                : "border border-neutral-800 text-neutral-400 hover:border-neutral-700"
+            }`}
+          >
+            Todas las conferencias
+          </button>
+          {conferences.map((c) => (
+            <button
+              key={c._id}
+              onClick={() => setConferenceId(c._id)}
+              className={`rounded-full px-3 py-1 font-mono text-xs transition ${
+                conferenceId === c._id
+                  ? "bg-accent/20 text-accent border border-accent/40"
+                  : "border border-neutral-800 text-neutral-400 hover:border-neutral-700"
+              }`}
+            >
+              {c.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       <h2 className="mt-12 font-mono text-[11px] tracking-[0.3em] text-neutral-500">EN VIVO AHORA</h2>
       <ul className="mt-3 space-y-2">

@@ -1,16 +1,26 @@
 import { ConvexError, v } from "convex/values";
-import { internalMutation, internalQuery, mutation, query, MutationCtx } from "./_generated/server";
+import { internalMutation, internalQuery, mutation, query, MutationCtx, QueryCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
-import { langValidator, statusValidator } from "./schema";
+import schema, { langValidator, statusValidator } from "./schema";
 import { DEMO_MAX_LIVE_SESSIONS, requireAdmin } from "./lib/auth";
+import { requireActiveConference, requireConferenceAdmin } from "./conferences";
+
+const conferenceFilter = v.optional(v.union(v.id("conferences"), v.null()));
+
+async function sessionsFor(ctx: QueryCtx, conferenceId?: Id<"conferences"> | null) {
+  return conferenceId === undefined
+    ? ctx.db.query("sessions").withIndex("by_creation_time").order("desc").take(200)
+    : ctx.db.query("sessions").withIndex("by_conferenceId", (q) => q.eq("conferenceId", conferenceId ?? undefined)).order("desc").take(200);
+}
 
 // ---------- Public reads (audience, overlay, dashboard) ----------
 
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { conferenceId: conferenceFilter },
+  returns: v.array(schema.doc("sessions")),
+  handler: async (ctx, { conferenceId }) => {
     // A conference has tens of sessions, not thousands: a bounded take is enough.
-    const sessions = await ctx.db.query("sessions").order("desc").take(200);
+    const sessions = await sessionsFor(ctx, conferenceId);
     return sessions.filter((s) => s.status !== "ended").concat(
       sessions.filter((s) => s.status === "ended"),
     );
@@ -24,11 +34,29 @@ export const get = query({
   },
 });
 
+// Audience reads only running talks, so old talks cannot fill the list window.
+export const live = query({
+  args: { conferenceId: conferenceFilter },
+  returns: v.array(schema.doc("sessions")),
+  handler: async (ctx, { conferenceId }) => {
+    const groups = await Promise.all((["live", "reconnecting", "paused"] as const).map((status) =>
+      conferenceId === undefined
+        ? ctx.db.query("sessions").withIndex("by_status", (q) => q.eq("status", status)).order("desc").take(100)
+        : ctx.db.query("sessions").withIndex("by_conferenceId_and_status", (q) => q.eq("conferenceId", conferenceId ?? undefined).eq("status", status)).order("desc").take(100),
+    ));
+    return groups.flat();
+  },
+});
+
 // Dashboard: sessions joined with their operational stats.
 export const dashboard = query({
-  args: {},
-  handler: async (ctx) => {
-    const sessions = await ctx.db.query("sessions").order("desc").take(200);
+  args: { conferenceId: conferenceFilter },
+  returns: v.array(schema.doc("sessions").extend({ stats: v.union(v.null(), v.object({
+    lastHeartbeatAt: v.number(), segmentCount: v.number(), avgLatencyMs: v.union(v.number(), v.null()),
+    errorCount: v.number(), reconnectCount: v.number(), lastError: v.union(v.string(), v.null()), lastErrorAt: v.union(v.number(), v.null()),
+  })) })),
+  handler: async (ctx, { conferenceId }) => {
+    const sessions = await sessionsFor(ctx, conferenceId);
     return await Promise.all(
       sessions.map(async (s) => {
         const stats = await ctx.db
@@ -63,9 +91,15 @@ export const create = mutation({
     speaker: v.optional(v.string()),
     sourceLang: langValidator,
     targetLangs: v.array(langValidator),
+    conferenceId: v.optional(v.id("conferences")),
   },
+  returns: v.id("sessions"),
   handler: async (ctx, { key, ...fields }) => {
     const role = requireAdmin(key);
+    if (fields.conferenceId) {
+      requireConferenceAdmin(key);
+      await requireActiveConference(ctx, fields.conferenceId);
+    }
     const targetLangs = [...new Set(fields.targetLangs)].filter((l) => l !== fields.sourceLang);
     const sessionId = await ctx.db.insert("sessions", {
       ...fields,
@@ -86,6 +120,21 @@ export const create = mutation({
       reconnectCount: 0,
     });
     return sessionId;
+  },
+});
+
+export const setConference = mutation({
+  args: { key: v.string(), sessionId: v.id("sessions"), conferenceId: v.union(v.id("conferences"), v.null()) },
+  returns: v.null(),
+  handler: async (ctx, { key, sessionId, conferenceId }) => {
+    requireConferenceAdmin(key);
+    const session = await mustGet(ctx, sessionId);
+    if (["live", "reconnecting", "paused"].includes(session.status)) {
+      throw new ConvexError("Finalizá la transmisión antes de cambiar el evento de la sesión");
+    }
+    if (conferenceId) await requireActiveConference(ctx, conferenceId);
+    await ctx.db.patch("sessions", sessionId, { conferenceId: conferenceId ?? undefined });
+    return null;
   },
 });
 
@@ -137,6 +186,10 @@ export const claim = mutation({
   handler: async (ctx, { key, sessionId, consoleId, force }) => {
     const role = requireAdmin(key);
     const session = await mustGet(ctx, sessionId);
+    if (session.conferenceId) {
+      requireConferenceAdmin(key);
+      await requireActiveConference(ctx, session.conferenceId);
+    }
     if (role === "demo" && session.status !== "live") {
       const live = await ctx.db
         .query("sessions")

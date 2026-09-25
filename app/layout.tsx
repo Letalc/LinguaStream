@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   description: "Real-time transcription and translation for conference talks, powered by Gemini.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={`${geistSans.variable} ${geistMono.variable} ${atkinson.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
