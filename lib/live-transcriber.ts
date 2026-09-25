@@ -121,16 +121,27 @@ export class LiveTranslateStream {
   // ---------- connection ----------
 
   private async connect() {
+    if (this.stopped) return;
     const { token, model, config } = await this.opts.getToken();
+    if (this.stopped) return;
     const ai = new GoogleGenAI({ apiKey: token, httpOptions: { apiVersion: "v1alpha" } });
 
-    this.session = await ai.live.connect({
+    type SessionType = Awaited<ReturnType<typeof ai.live.connect>>;
+    let currentSession: SessionType | null = null;
+    currentSession = await ai.live.connect({
       model,
       config: { ...config, sessionResumption: { handle: this.resumeHandle } },
       callbacks: {
-        onmessage: (msg) => this.onMessage(msg),
-        onerror: (e) => console.error("[live] error", e),
+        onmessage: (msg) => {
+          if (this.session !== currentSession) return;
+          this.onMessage(msg);
+        },
+        onerror: (e) => {
+          if (this.session !== currentSession) return;
+          console.error("[live] error", e);
+        },
         onclose: (e) => {
+          if (this.session !== currentSession) return;
           console.warn("[live] closed", e?.code, e?.reason);
           this.session = null;
           if (!this.stopped) void this.reconnect(e?.reason || `connection closed (${e?.code})`);
@@ -138,6 +149,12 @@ export class LiveTranslateStream {
       },
     });
 
+    if (this.stopped) {
+      try { currentSession.close(); } catch {}
+      return;
+    }
+
+    this.session = currentSession;
     this.reconnecting = false;
     this.opts.onStatus("live");
     const queued = this.pending;
