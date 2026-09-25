@@ -9,7 +9,7 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 const atkinson = Atkinson_Hyperlegible({ variable: "--font-atkinson", subsets: ["latin"], weight: ["400", "700"] });
 
 export const metadata: Metadata = {
-  title: "Live Subs — open source live captions for conferences",
+  title: "LinguaStream — live captions and translation for conferences",
   description: "Real-time transcription and translation for conference talks, powered by Gemini.",
 };
 

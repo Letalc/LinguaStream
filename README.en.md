@@ -1,4 +1,4 @@
-# Nerdearla Live Subs
+# LinguaStream
 
 [Versión en español](README.md)
 
@@ -43,8 +43,8 @@ The implementation opens one Gemini connection per target language. The first co
 ## Local setup
 
 ```bash
-git clone https://github.com/Letalc/nerdearla-live-subs.git
-cd nerdearla-live-subs
+git clone https://github.com/Letalc/LinguaStream.git
+cd LinguaStream
 npm install
 npx convex dev
 ```

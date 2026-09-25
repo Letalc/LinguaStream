@@ -37,7 +37,7 @@ export function JoinDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-md sm:items-center" role="dialog" aria-modal="true" aria-labelledby="join-title">
       <div className="w-full max-w-md rounded-t-2xl border border-line bg-panel p-6 shadow-2xl sm:rounded-2xl">
-        <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">Subtítulos en vivo</p>
+        <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent">LinguaStream · Subtítulos en vivo</p>
         <h2 id="join-title" className="mt-2 text-xl font-semibold leading-tight">{title}</h2>
         <p className="mt-1 text-sm text-neutral-400">{subtitle}</p>
 

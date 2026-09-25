@@ -60,8 +60,8 @@ function CommandCenter({ adminKey, logout, role }: { adminKey: string; logout: (
         <div>
           <h1 className="flex items-center gap-3 text-xl font-bold uppercase tracking-tight">
             <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-accent" />
-            Production Command
-            <span className="font-mono text-sm font-normal text-accent/70">v1.0</span>
+            LinguaStream
+            <span className="font-mono text-sm font-normal normal-case text-accent/70">Production Command</span>
             {role === "demo" && (
               <span className="rounded-sm border border-amber-500/40 px-2 py-0.5 font-mono text-[10px] tracking-[0.2em] text-amber-400">
                 DEMO
