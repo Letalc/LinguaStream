@@ -189,9 +189,11 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
   if (session === null) return <div className="p-8">Sesión no encontrada.</div>;
 
   const langs = [session.sourceLang, ...session.targetLangs];
+  // One column per language, side by side on desktop (static classes so Tailwind keeps them).
+  const langCols = langs.length >= 3 ? "md:grid-cols-3" : langs.length === 2 ? "md:grid-cols-2" : "";
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-6">
+    <main className={`mx-auto w-full px-4 py-6 ${langs.length >= 3 ? "max-w-7xl" : "max-w-5xl"}`}>
       <div className="flex items-center justify-between gap-4">
         <div>
           <Link href="/admin" className="inline-flex items-center gap-1 text-sm text-neutral-400 hover:text-white"><ArrowLeft className="h-4 w-4" /> Panel</Link>
@@ -273,11 +275,14 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
         )}
       </section>
 
-      <div className={`mt-6 grid gap-4 ${langs.length > 1 ? "md:grid-cols-2" : ""}`}>
+      <div className={`mt-6 grid gap-4 ${langCols}`}>
         {langs.map((lang) => (
-          <div key={lang} className="rounded-2xl border border-neutral-800 p-4">
-            <h2 className="mb-2 text-xs uppercase tracking-wide text-neutral-500">{langLabel(lang)}</h2>
-            <SubtitleFeed sessionId={sessionId} lang={lang} className="h-72 text-lg" />
+          <div key={lang} className="flex min-w-0 flex-col rounded-2xl border border-neutral-800 p-4">
+            <h2 className="mb-2 text-xs uppercase tracking-wide text-neutral-500">
+              {langLabel(lang)}
+              {lang === session.sourceLang && <span className="ml-2 normal-case tracking-normal text-neutral-600">original</span>}
+            </h2>
+            <SubtitleFeed sessionId={sessionId} lang={lang} className="h-80 text-base" />
           </div>
         ))}
       </div>
