@@ -158,3 +158,54 @@ test("flushes Unicode source/translation text after silence and measures observe
   });
   expect(partial).toHaveBeenCalled();
 });
+
+function createTranslationOnly(clock: SpeechClock) {
+  const status = vi.fn();
+  const getToken = vi.fn(async () => ({ token: "offline-token", model: "mock", config: {} }));
+  const stream = new LiveTranslateStream({
+    clock, getToken, onStatus: status,
+    output: { onPartial: vi.fn(), onCommit: vi.fn() },
+  });
+  return { stream, status, getToken };
+}
+
+/** 100 ms audio chunks for `ms`, optionally with the original transcript still arriving. */
+async function speak(stream: LiveTranslateStream, clock: SpeechClock, ms: number, transcript: boolean, reply?: () => void) {
+  for (let t = 0; t < ms; t += 100) {
+    clock.observe(0.1);
+    if (transcript) clock.lastTranscriptAt = Date.now();
+    stream.pushAudio("chunk");
+    reply?.();
+    await vi.advanceTimersByTimeAsync(100);
+  }
+}
+
+test("replaces a translation connection that goes mute while the speaker keeps talking", async () => {
+  const clock = new SpeechClock();
+  const { stream, status } = createTranslationOnly(clock);
+  await stream.start();
+  await speak(stream, clock, 9000, true);
+  expect(sdk.connect).toHaveBeenCalledTimes(2);
+  expect(status).toHaveBeenCalledWith("reconnecting", expect.stringContaining("sin texto"));
+  expect(sdk.connect.mock.calls[1][0].config.sessionResumption.handle).toBeUndefined();
+  expect(status).toHaveBeenLastCalledWith("live");
+});
+
+test("does not reconnect during music or noise without a transcript", async () => {
+  const clock = new SpeechClock();
+  const { stream } = createTranslationOnly(clock);
+  await stream.start();
+  await speak(stream, clock, 20000, false);
+  expect(sdk.connect).toHaveBeenCalledTimes(1);
+});
+
+test("does not reconnect a translation that keeps answering", async () => {
+  const clock = new SpeechClock();
+  const { stream } = createTranslationOnly(clock);
+  await stream.start();
+  let n = 0;
+  await speak(stream, clock, 30000, true, () => {
+    if (++n % 30 === 0) connections[0].callbacks.onmessage({ serverContent: { outputTranscription: { text: "hola " } } });
+  });
+  expect(sdk.connect).toHaveBeenCalledTimes(1);
+});
