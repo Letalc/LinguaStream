@@ -1,0 +1,54 @@
+{
+  "startedAt": "2026-09-25T10:40:35.622Z",
+  "finishedAt": "2026-09-25T11:11:11.392Z",
+  "connectionMinutes": 90.025,
+  "estimatedCostUsd": 3.31292,
+  "maxCostUsd": 4.68,
+  "rooms": [
+    {
+      "sessionId": "jh74524r73p62ca4s1hkndbgps8f3fxc",
+      "room": "Sala 1",
+      "file": "/tmp/nerdearla-en-30m.wav",
+      "sourceLang": "en",
+      "targetLangs": [
+        "es"
+      ],
+      "durationMs": 1800000,
+      "counts": {
+        "en": 403,
+        "es": 438
+      },
+      "reconnects": 6
+    },
+    {
+      "sessionId": "jh73jgp95vtsftepa7b5xj7z898f2vp2",
+      "room": "Sala 2",
+      "file": "/tmp/nerdearla-es-30m.wav",
+      "sourceLang": "es",
+      "targetLangs": [
+        "pt"
+      ],
+      "durationMs": 1800000,
+      "counts": {
+        "es": 373,
+        "pt": 390
+      },
+      "reconnects": 6
+    },
+    {
+      "sessionId": "jh78vqtdm1fq9q1s6c1hja9tz58f23ta",
+      "room": "Sala 3",
+      "file": "/tmp/nerdearla-pt-30m.wav",
+      "sourceLang": "pt",
+      "targetLangs": [
+        "en"
+      ],
+      "durationMs": 1800000,
+      "counts": {
+        "pt": 312,
+        "en": 328
+      },
+      "reconnects": 6
+    }
+  ]
+}
