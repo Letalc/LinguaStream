@@ -45,15 +45,16 @@ export function SessionCard({ s, now, adminKey }: { s: DashboardSession; now: nu
         </span>
       </header>
 
-      <dl className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
-        <Metric label="Transcurrido" value={formatElapsed(s.startedAt, s.endedAt, now)} />
+      {/* Columns adapt to the card width so labels never overlap. */}
+      <dl className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] gap-2">
+        <Metric label="Tiempo" value={formatElapsed(s.startedAt, s.endedAt, now)} />
         <Metric
           label="Latencia"
           value={s.stats?.avgLatencyMs != null ? `${(s.stats.avgLatencyMs / 1000).toFixed(1)}s` : "—"}
           warn={(s.stats?.avgLatencyMs ?? 0) > 4000}
         />
         <Metric label="Líneas" value={String(s.stats?.segmentCount ?? 0)} />
-        <Metric label="Navegadores" value={viewerCount ? `${viewerCount.count}${viewerCount.capped ? "+" : ""}` : "—"} />
+        <Metric label="Público" value={viewerCount ? `${viewerCount.count}${viewerCount.capped ? "+" : ""}` : "—"} />
         <Metric
           label="Errores"
           value={`${s.stats?.errorCount ?? 0}${s.stats?.reconnectCount ? ` · ${s.stats.reconnectCount} rec.` : ""}`}
@@ -90,9 +91,9 @@ export function SessionCard({ s, now, adminKey }: { s: DashboardSession; now: nu
 
 function Metric({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
   return (
-    <div className="rounded-sm border border-line bg-black/30 px-3 py-2">
-      <dt className="font-mono text-[9px] uppercase tracking-[0.25em] text-neutral-500">{label}</dt>
-      <dd className={`mt-1 font-mono text-base ${warn ? "text-amber-400" : "text-neutral-100"}`}>{value}</dd>
+    <div className="min-w-0 rounded-sm border border-line bg-black/30 px-3 py-2">
+      <dt className="truncate font-mono text-[9px] uppercase tracking-[0.15em] text-neutral-500" title={label}>{label}</dt>
+      <dd className={`mt-1 truncate font-mono text-base ${warn ? "text-amber-400" : "text-neutral-100"}`}>{value}</dd>
     </div>
   );
 }
