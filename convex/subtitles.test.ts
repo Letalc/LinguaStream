@@ -12,7 +12,7 @@ beforeEach(() => {
   vi.stubEnv("DEMO_MODE", "false");
 });
 
-async function createRoom(t: ReturnType<typeof convexTest<typeof schema>>, room: number) {
+async function createRoom(t: ReturnType<typeof convexTest>, room: number) {
   const sessionId = await t.mutation(api.sessions.create, {
     key, title: `Talk ${room}`, room: `Room ${room}`,
     sourceLang: room % 2 ? "es" : "en", targetLangs: room % 2 ? ["en", "pt"] : ["es", "pt"],

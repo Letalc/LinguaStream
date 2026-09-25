@@ -3,7 +3,7 @@ import type { LiveServerMessage } from "@google/genai";
 import { LineSegmenter, LiveTranslateStream, SpeechClock, type CommittedLine } from "./live-transcriber";
 
 type Callbacks = {
-  onmessage: (message: LiveServerMessage) => void;
+  onmessage: (message: any) => void;
   onclose: (event: { code: number; reason: string }) => void;
 };
 const sdk = vi.hoisted(() => ({ connect: vi.fn() }));
