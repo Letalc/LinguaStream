@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, use } from "react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { isLang } from "@/lib/langs";
+import { overlayOptions } from "@/lib/overlay-options";
 
 /**
  * OBS / vMix Browser Source. Transparent page, last lines at the bottom.
@@ -23,12 +23,7 @@ export default function OverlayPage({ params }: { params: Promise<{ id: string }
 
 function Overlay({ sessionId }: { sessionId: Id<"sessions"> }) {
   const q = useSearchParams();
-  const langParam = q.get("lang");
-  const lang = isLang(langParam) ? langParam : "es";
-  const size = Number(q.get("size") ?? 42);
-  const maxLines = Number(q.get("lines") ?? 2);
-  const box = q.get("bg") !== "0";
-  const color = `#${(q.get("color") ?? "ffffff").replace(/[^0-9a-f]/gi, "")}`;
+  const { lang, size, lines: maxLines, box, color } = overlayOptions(q);
 
   const feed = useQuery(api.segments.feed, { sessionId, lang, limit: maxLines });
   const lines = [...(feed?.lines.map((l) => l.text) ?? []), ...(feed?.partial ? [feed.partial] : [])].slice(-maxLines);

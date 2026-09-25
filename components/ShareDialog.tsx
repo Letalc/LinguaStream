@@ -58,6 +58,20 @@ export function ShareDialog({
         >
           <span className="inline-flex items-center gap-2"><Presentation className="h-4 w-4" /> PROYECTAR EN PANTALLA</span>
         </Link>
+        <Link
+          href={`/present/${sessionId}`}
+          target="_blank"
+          className="mt-2 block rounded-lg border border-cyan-300/50 py-2.5 text-center font-mono text-xs font-semibold tracking-widest text-cyan-200"
+        >
+          PRESENTACIÓN + CC
+        </Link>
+        <Link
+          href={`/overlay/${sessionId}?lang=es&size=42&lines=2&bg=1`}
+          target="_blank"
+          className="mt-2 block py-2 text-center font-mono text-[11px] tracking-widest text-neutral-400 hover:text-white"
+        >
+          OVERLAY TRANSPARENTE PARA OBS / VMIX
+        </Link>
       </div>
     </div>
   );
