@@ -126,7 +126,7 @@ export default function AudiencePage({ params }: { params: Promise<{ id: string 
         </div>
       </header>
       <SubtitleFeed sessionId={sessionId} lang={current} className={`flex-1 px-4 py-4 ${SIZES[size]}`} limit={100} />
-      {speak && <SpeakLines sessionId={sessionId} lang={current} />}
+      {speak && <SpeakLines key={current} sessionId={sessionId} lang={current} />}
       <footer className="flex items-center gap-4 border-t border-neutral-800 px-4 py-2 text-sm">
         {session.status === "ended" ? (
           <>
