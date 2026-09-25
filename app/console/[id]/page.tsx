@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useAction } from "convex/react";
-import { use, useCallback, useEffect, useRef, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -56,11 +56,13 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
   const streams = useRef<LiveTranslateStream[]>([]);
   const capture = useRef<{ stop: () => void } | null>(null);
   const paused = useRef(false);
-  const partialTimers = useRef<Partial<Record<Lang, ReturnType<typeof setTimeout>>>>({});
-  const latestPartial = useRef<Partial<Record<Lang, string>>>({});
+  const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
     listInputDevices().then(setDevices).catch(() => {});
+    const onVis = () => setHidden(document.visibilityState === "hidden");
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
   }, []);
 
   // Heartbeat so the dashboard knows this room is alive.
@@ -73,21 +75,11 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
     return () => clearInterval(t);
   }, [running, adminKey, sessionId, consoleId, heartbeat]);
 
-  const pushPartial = useCallback(
-    (lang: Lang, text: string) => {
-      // Throttle partial writes to ~4/s per language: plenty for reading, cheap for the backend.
-      latestPartial.current[lang] = text;
-      if (partialTimers.current[lang]) return;
-      partialTimers.current[lang] = setTimeout(() => {
-        delete partialTimers.current[lang];
-        setPartial({ key: adminKey, sessionId, consoleId, lang, text: latestPartial.current[lang] ?? "" }).catch(() => {});
-      }, 250);
-    },
-    [adminKey, sessionId, consoleId, setPartial],
-  );
-
   const lineEvents = (lang: Lang): LineEvents => ({
-    onPartial: (text) => pushPartial(lang, text),
+    // Already throttled by the segmenter (≤ ~7 updates/s, timer-free).
+    onPartial: (text, receivedAt) => {
+      setPartial({ key: adminKey, sessionId, consoleId, lang, text, receivedAt }).catch(() => {});
+    },
     onCommit: (line) => {
       commitLine({
         key: adminKey,
@@ -260,6 +252,12 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
           </div>
         </div>
         {lastError && <p className="mt-3 text-sm text-amber-400">⚠ {lastError}</p>}
+        {running && (
+          <p className={`mt-3 text-xs ${hidden ? "text-amber-400" : "text-neutral-500"}`}>
+            Tip: dejá esta consola en una <b>ventana aparte</b> (no en otra pestaña de la misma ventana): los
+            navegadores ralentizan las pestañas ocultas.
+          </p>
+        )}
       </section>
 
       <div className={`mt-6 grid gap-4 ${langs.length > 1 ? "md:grid-cols-2" : ""}`}>

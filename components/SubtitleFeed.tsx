@@ -34,7 +34,12 @@ export function SubtitleFeed({
       {feed?.lines.map((l) => (
         <p key={l.seq} className="mb-2">{l.text}</p>
       ))}
-      {feed?.partial && <p className="mb-2 text-neutral-400">{feed.partial}</p>}
+      {feed?.partial && (
+        <p className="mb-2">
+          {feed.partial}
+          <span className="ml-0.5 inline-block w-[0.5ch] animate-pulse opacity-70">▍</span>
+        </p>
+      )}
       <div ref={bottom} />
     </div>
   );
