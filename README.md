@@ -2,6 +2,8 @@
 
 [English version](README.en.md)
 
+**Demo en vivo:** https://linguastream-ten.vercel.app · el panel `/admin` tiene un botón **Entrar como demo** (hasta 3 salas en vivo, 20 minutos por sesión).
+
 Subtítulos y traducción en vivo para conferencias, construidos con Next.js, Convex y Gemini Live. Cada sala envía audio desde una consola web; el público recibe el texto en tiempo real desde su teléfono y producción puede incorporarlo a un proyector, OBS, vMix o al stream del evento.
 
 El proyecto permite operar varias charlas sin entregar la clave de Gemini a las laptops de sala. Convex crea tokens efímeros, guarda las líneas finales y distribuye las actualizaciones en tiempo real.
@@ -10,9 +12,11 @@ El proyecto permite operar varias charlas sin entregar la clave de Gemini a las 
 
 - Consola de sala con selección de micrófono o audio de una pestaña, vúmetro, pausa y reconexión automática.
 - Subtítulos originales y traducciones en español, inglés y portugués.
-- Vista accesible con tamaño de texto, contraste, lectura en voz alta y enlace a intérprete de señas.
-- Eventos que agrupan sesiones y glosarios aislados por evento o charla.
-- Panel de producción con estado, latencia, errores, líneas y estimación de espectadores web.
+- Ingreso por QR o código de 4 letras, con un popup para elegir idioma (Español, English, Português) o el modo accesible.
+- Modo accesible para personas sordas o con hipoacusia (ver [Accesibilidad](#accesibilidad)).
+- Lectura en voz alta de la traducción que siempre va al presente: si se atrasa, descarta lo viejo en lugar de acumularlo.
+- Eventos que agrupan sesiones y glosarios aislados por evento o charla. El glosario se puede extraer con IA desde la presentación de la charla (PDF o link de Google Slides).
+- Panel de producción con embudo (en vivo, con problemas, programadas, finalizadas), alertas en vivo, estado, tiempo, latencia, errores, líneas y estimación de espectadores web. Las charlas terminadas se archivan en una carpeta con descargas por idioma.
 - Overlay transparente para OBS/vMix y una salida que combina diapositivas con CC.
 - Exportación TXT, SRT y WebVTT.
 
@@ -70,6 +74,35 @@ npm run dev
 
 Abrí `http://localhost:3000/admin`, ingresá la contraseña, creá un evento y luego una sesión. La consola de cada sala aparece en `/console/[sessionId]`.
 
+## Deploy
+
+La instancia pública corre en **Vercel** (frontend) y **Convex Cloud** (backend):
+
+```bash
+# 1. Backend: sube funciones, esquema y crons al deployment de producción
+npx convex env set --prod ADMIN_PASSWORD
+npx convex env set --prod GEMINI_API_KEY
+npx convex env set --prod DEMO_MODE true   # opcional: habilita el botón "Entrar como demo"
+npx convex deploy
+
+# 2. Frontend: proyecto de Vercel conectado al repositorio
+vercel env add NEXT_PUBLIC_CONVEX_URL production       # https://<deployment>.convex.cloud
+vercel env add NEXT_PUBLIC_CONVEX_SITE_URL production  # https://<deployment>.convex.site
+vercel --prod
+```
+
+`vercel.json` fija el framework en Next.js. Con el repositorio conectado, cada push a `master` publica el frontend; el backend se sube aparte con `npx convex deploy` (antes del push si cambia `convex/`). En producción no hace falta `NEXT_PUBLIC_PUBLIC_URL`: los QR usan el dominio del sitio.
+
+## Accesibilidad
+
+Al escanear el QR, el público elige su idioma o **Accesible · personas sordas o con hipoacusia**. El modo accesible ofrece:
+
+- Letra muy grande con [Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/), 3 combinaciones de alto contraste y foco en las últimas 3 líneas.
+- **Pausar para releer** toda la charla y volver al vivo con un toque.
+- Indicador visual **Hablando / Silencio**, y avisos de pausa, fin o reconexión, para que una pantalla quieta nunca sea ambigua.
+- Video del **intérprete de lengua de señas (LSA)**: la consola de sala acepta un link (YouTube u otro embebible) y el público lo ve arriba de los subtítulos. Es un intérprete humano provisto por el evento; no se genera con IA.
+- **Vibración** al empezar, pausar y terminar la charla (Android; Safari en iOS no permite vibrar desde la web).
+
 ## Salidas para público y producción
 
 - `/s/[sessionId]`: vista personal para celulares y computadoras.
@@ -94,7 +127,7 @@ Los secretos `ADMIN_PASSWORD` y `GEMINI_API_KEY` se configuran con `npx convex e
 ## Pruebas
 
 ```bash
-npm test
+npm test          # requiere Node.js 22 (vitest no arranca con Node 20.17)
 npm run lint
 npx tsc --noEmit
 npm run build
@@ -114,12 +147,21 @@ ADMIN_PASSWORD='...' npx tsx scripts/simulate-room.ts charla-en.wav:en:es charla
 
 Al 25 de septiembre de 2026, Google publica un precio efectivo aproximado de **USD 0,0368 por minuto por conexión** para `gemini-3.5-live-translate-preview`: cerca de **USD 2,21 por hora con un idioma de salida** o **USD 4,42 por hora con dos**. Verificá siempre la [tabla oficial](https://ai.google.dev/gemini-api/docs/pricing), porque el modelo es preview. Convex, transferencia y streaming se calculan aparte.
 
+### Cuota de Gemini: cuántas salas en simultáneo
+
+Cada sala abre **una conexión Gemini Live por idioma de salida**, así que una sala EN → ES + PT usa 2 conexiones. Gemini limita las sesiones Live **concurrentes por proyecto** según el nivel de la cuenta:
+
+- **Probado:** 3 salas en simultáneo durante 30 minutos, con 6 reconexiones forzadas por sala, sin errores de cuota ([resultado](test-results/real-3-room-30m-2026-09-25.md)).
+- **Límite observado:** con 10 salas, Gemini rechazó parte de las conexiones (WebSocket 1011) por la cuota concurrente del proyecto ([registro](test-results/real-load-2026-09-25.json)).
+
+Para un evento con más salas: revisá los límites de tu proyecto en [Google AI Studio](https://aistudio.google.com/) → Rate limits, pedí un aumento de cuota o subí de nivel de facturación, y hacé una prueba escalonada antes del evento.
+
 ## Escala y audiencia
 
 El contador representa navegadores conectados a la vista web; no incluye personas que miran un video con los subtítulos incorporados. Es una señal operativa, no un conteo de asistentes únicos. Antes de una conferencia masiva hay que probar el plan elegido y revisar los [límites de Convex](https://docs.convex.dev/production/state/limits). La asistencia total del evento no equivale a conexiones simultáneas a esta aplicación.
 
 ## Estado
 
-El núcleo y las pruebas offline están implementados. Quedan pendientes las certificaciones con servicios reales: audio EN/ES, latencia, una ejecución continua de 30 minutos, OBS/vMix, VLC y una prueba de carga sobre el plan definitivo. No hay deploy incluido en este flujo.
+Desplegado y validado con servicios reales: EN → ES/PT y ES → EN, latencia de ~1 s para el original y ~2,5 s para la traducción después de cada frase, 3 salas durante 30 minutos con reconexiones, aislamiento entre salas y exportación SRT abierta en VLC. Detalle en [docs/VALIDATION.md](docs/VALIDATION.md). El número de salas simultáneas depende de la cuota de Gemini (ver arriba).
 
 Licencia [MIT](LICENSE).

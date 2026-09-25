@@ -15,20 +15,22 @@ Last reviewed / Última revisión: 2026-09-25.
 | Overlay parameters | Language, lines, font size, background, and color are bounded | Pass |
 | Static checks | ESLint, TypeScript, Next.js production build | Pass, with one non-blocking pre-existing hook warning |
 
-These deterministic tests do not contact Gemini, a Convex deployment, OBS, VLC, or a streaming platform.
+These deterministic tests do not contact Gemini or a Convex deployment.
 
-## Requires real-service validation / Requiere validación con servicios reales
+## Verified with real services / Verificado con servicios reales
 
-| Acceptance item | Required evidence | Status |
+| Acceptance item | Evidence | Result |
 | --- | --- | --- |
-| English audio → EN and ES under 5 s | Timestamped microphone/WAV run against Gemini | Pending |
-| Spanish audio → ES and EN | Timestamped microphone/WAV run against Gemini | Pending |
-| Portuguese and glossary effectiveness | Before/after sample using the same recording | Pending |
-| 3–10 simultaneous real rooms | Finite paid run with isolated transcripts and quota log | Pending budget approval |
-| Continuous 30-minute session | Real-clock run with forced network drop | Pending budget approval |
-| OBS/vMix overlay | Browser Source recording showing transparency | Pending local app |
-| SRT/VTT in VLC | Export from a real session opened over matching video | Pending local app |
-| Large audience | Load scenario matching simultaneous web viewers and Convex plan | Pending plan and concurrency estimate |
+| English audio → EN, ES, PT | WAV simulator and live talk audio against Gemini (`gemini-3.5-live-translate-preview`) | Pass: ~1.1 s for the original and ~2.5 s for the translation after each sentence ends |
+| Spanish audio → ES, EN | WAV simulator and a live Spanish talk captured from a browser tab | Pass |
+| Portuguese output | ES → PT and PT → EN rooms in the 30-minute run | Pass |
+| Glossary effectiveness | Same recording before/after adding terms; 30-minute run | Partial: "Nerdearla" fixed by the glossary; isolated misrecognitions remain (`Conve`, `Google Aires`) |
+| 3 simultaneous rooms, 30 minutes | [real-3-room-30m-2026-09-25.md](../test-results/real-3-room-30m-2026-09-25.md): 1,088 source and 1,156 translated segments, 18 forced reconnections, 0 quota errors | Pass |
+| Room isolation (real deployment) | Transcripts queried per session and language after the run; no cross-room or unexpected-language records | Pass |
+| Automatic reconnection | Forced drops in the simulator and Gemini's own ~10-minute session closes during a real talk; captions continued after each reconnect | Pass |
+| 10 simultaneous rooms | [real-load-2026-09-25.json](../test-results/real-load-2026-09-25.json): rooms created and isolated, but Gemini rejected part of the concurrent connections (WebSocket 1011) | Blocked by the Gemini project's concurrent-session quota |
+| SRT export | Export from a real session opened in VLC | Pass |
+| Production deploy | Vercel + Convex Cloud; QR → join popup on a simulated phone (4G, 4× CPU throttle) | Pass: 2.3–2.6 s (warm) |
 
 ## Cost boundary / Límite de costo
 
