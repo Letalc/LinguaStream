@@ -33,3 +33,9 @@ body:has(.overlay-root) {
   to { transform: none; opacity: 1; }
 }
 .toast-in { animation: toast-in 180ms ease-out; }
+
+/* Accessible view: speaking indicator bars */
+@keyframes speak-bar {
+  0%, 100% { height: 5px; }
+  50% { height: 22px; }
+}

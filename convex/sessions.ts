@@ -360,3 +360,15 @@ export const markStale = internalMutation({
     return marked;
   },
 });
+
+// Accessibility: link to a live video of a human sign-language interpreter (e.g. LSA).
+export const setInterpreter = mutation({
+  args: { key: v.string(), sessionId: v.id("sessions"), url: v.string() },
+  handler: async (ctx, { key, sessionId, url }) => {
+    requireAdmin(key);
+    const clean = url.trim();
+    if (clean && !/^https:\/\//i.test(clean)) throw new ConvexError("The interpreter link must start with https://");
+    await ctx.db.patch("sessions", sessionId, { interpreterUrl: clean || undefined });
+    return null;
+  },
+});

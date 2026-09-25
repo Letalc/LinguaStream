@@ -7,6 +7,7 @@ import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { langLabel } from "@/lib/langs";
 import { Dot } from "@/components/ui/Dot";
+import { Ear } from "lucide-react";
 
 /** Audience landing: type the room code shown on the projector, or pick a live talk. */
 export default function Home() {
@@ -21,6 +22,10 @@ export default function Home() {
       <h1 className="mt-3 text-4xl font-semibold tracking-tight">Entendé cada charla, en tu idioma.</h1>
       <p className="mt-3 text-neutral-400">
         Transcripción y traducción simultánea con IA. Sin registro: ingresá el código de la sala o escaneá el QR.
+      </p>
+
+      <p className="mt-4 flex items-center gap-2 text-sm text-yellow-300/90">
+        <Ear className="h-4 w-4 shrink-0" /> Incluye un modo accesible para personas sordas o con hipoacusia.
       </p>
 
       <form
