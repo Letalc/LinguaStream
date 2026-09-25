@@ -13,6 +13,7 @@ import { LagIndicator } from "@/components/LagIndicator";
 import { SpeakLines } from "@/components/SpeakLines";
 import { AArrowDown, AArrowUp, ArrowLeft, Contrast, Languages, Volume2, VolumeX } from "lucide-react";
 import { JoinDialog, type JoinChoice, type ViewMode } from "@/components/JoinDialog";
+import { AccessibleView } from "@/components/AccessibleView";
 import { Dot } from "@/components/ui/Dot";
 import { LangBadge } from "@/components/ui/LangBadge";
 
@@ -59,7 +60,6 @@ export default function AudiencePage({ params }: { params: Promise<{ id: string 
   const confirmJoin = (c: JoinChoice) => {
     setLang(c.lang);
     setMode(c.mode);
-    if (c.mode === "accessible") setContrast(true);
     setJoined(true);
     setPicking(false);
     try {
@@ -74,20 +74,32 @@ export default function AudiencePage({ params }: { params: Promise<{ id: string 
   // Default: Spanish if available (Nerdearla's audience), else the original language.
   const current: Lang = lang && available.includes(lang) ? lang : available.includes("es") ? "es" : session.sourceLang;
 
+  const dialog = (joined === false || picking) && (
+    <JoinDialog
+      title={session.title}
+      subtitle={`${session.room}${session.speaker ? ` · ${session.speaker}` : ""}${session.code ? ` · Código ${session.code}` : ""}`}
+      available={available}
+      sourceLang={session.sourceLang}
+      initial={{ lang: current, mode }}
+      onConfirm={confirmJoin}
+      onCancel={picking ? () => setPicking(false) : undefined}
+    />
+  );
+
+  if (mode === "accessible" && joined) {
+    return (
+      <>
+        <ConnectionBadge />
+        {dialog}
+        <AccessibleView session={session} sessionId={sessionId} lang={current} onChange={() => setPicking(true)} />
+      </>
+    );
+  }
+
   return (
     <main className={`flex h-dvh flex-col ${contrast ? "bg-black text-yellow-300" : ""}`}>
       <ConnectionBadge />
-      {(joined === false || picking) && (
-        <JoinDialog
-          title={session.title}
-          subtitle={`${session.room}${session.speaker ? ` · ${session.speaker}` : ""}${session.code ? ` · Código ${session.code}` : ""}`}
-          available={available}
-          sourceLang={session.sourceLang}
-          initial={{ lang: current, mode }}
-          onConfirm={confirmJoin}
-          onCancel={picking ? () => setPicking(false) : undefined}
-        />
-      )}
+      {dialog}
       <header className="border-b border-neutral-800 px-4 py-3">
         <div className="flex items-center justify-between gap-2">
           <Link href="/" className="text-neutral-400" aria-label="Volver"><ArrowLeft className="h-5 w-5" /></Link>

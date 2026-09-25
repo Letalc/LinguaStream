@@ -28,6 +28,7 @@ export default defineSchema({
     consoleId: v.optional(v.string()), // random id of the console tab that owns the session
     code: v.optional(v.string()), // short room code for the audience, e.g. "K7Q2" (QR / link)
     createdBy: v.optional(v.union(v.literal("admin"), v.literal("demo"))),
+    interpreterUrl: v.optional(v.string()), // live video of a human sign-language (LSA) interpreter
   })
     .index("by_status", ["status"])
     .index("by_code", ["code"]),

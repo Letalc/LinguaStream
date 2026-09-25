@@ -17,7 +17,7 @@ import { startCapture, listInputDevices } from "@/lib/audio-capture";
 import { langLabel, type Lang } from "@/lib/langs";
 import { SubtitleFeed } from "@/components/SubtitleFeed";
 import { ShareDialog } from "@/components/ShareDialog";
-import { ArrowLeft, QrCode, TriangleAlert } from "lucide-react";
+import { ArrowLeft, Hand, QrCode, TriangleAlert } from "lucide-react";
 
 export default function ConsolePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -43,6 +43,7 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
   const setPartial = useMutation(api.segments.setPartial);
   const commitLine = useMutation(api.segments.commitLine);
   const createToken = useAction(api.gemini.createLiveToken);
+  const setInterpreter = useMutation(api.sessions.setInterpreter);
 
   // A random id per tab: the backend lets only one console own a session.
   const [consoleId] = useState(() => crypto.randomUUID());
@@ -280,6 +281,11 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
         ))}
       </div>
 
+      <InterpreterField
+        initial={session.interpreterUrl ?? ""}
+        onSave={(url) => setInterpreter({ key: adminKey, sessionId, url })}
+      />
+
       <div className="mt-6 flex flex-wrap gap-4 text-sm text-neutral-400">
         <Link className="underline" href={`/s/${sessionId}`} target="_blank">Vista audiencia</Link>
         <Link className="underline" href={`/overlay/${sessionId}?lang=${session.targetLangs[0] ?? session.sourceLang}`} target="_blank">Overlay OBS</Link>
@@ -294,5 +300,51 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
         </pre>
       )}
     </main>
+  );
+}
+
+/** Accessibility: link to the live video of a human sign-language (LSA) interpreter. */
+function InterpreterField({ initial, onSave }: { initial: string; onSave: (url: string) => Promise<null> }) {
+  const [url, setUrl] = useState(initial);
+  const [state, setState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [error, setError] = useState("");
+  return (
+    <form
+      className="mt-6 rounded-2xl border border-neutral-800 p-4"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setState("saving");
+        try {
+          await onSave(url);
+          setState("saved");
+        } catch (err) {
+          setError(String((err as { data?: string }).data ?? err));
+          setState("error");
+        }
+      }}
+    >
+      <label className="flex items-center gap-2 text-xs uppercase tracking-wide text-neutral-500">
+        <Hand className="h-4 w-4" /> Intérprete de lengua de señas (LSA) · opcional
+      </label>
+      <div className="mt-2 flex gap-2">
+        <input
+          value={url}
+          onChange={(e) => {
+            setUrl(e.target.value);
+            setState("idle");
+          }}
+          placeholder="https://youtube.com/live/… (video en vivo del intérprete)"
+          className="min-w-0 flex-1 rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm"
+        />
+        <button className="rounded-lg border border-neutral-700 px-4 text-sm" disabled={state === "saving"}>
+          {state === "saved" ? "Guardado" : "Guardar"}
+        </button>
+      </div>
+      <p className="mt-2 text-xs text-neutral-500">
+        {state === "error"
+          ? error
+          : "Se muestra en el modo Accesible de la audiencia. Es un intérprete humano: no se genera con IA."}
+      </p>
+    </form>
   );
 }
