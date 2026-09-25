@@ -2,7 +2,7 @@
 
 [English version](README.en.md)
 
-**Demo en vivo:** https://linguastream-ten.vercel.app · el panel `/admin` tiene un botón **Entrar como demo** (hasta 3 salas en vivo, 20 minutos por sesión).
+**Demo en vivo:** https://linguastream-ten.vercel.app · el panel `/admin` tiene un botón **Entrar como demo**.
 
 Subtítulos y traducción en vivo para conferencias, construidos con Next.js, Convex y Gemini Live. Cada sala envía audio desde una consola web; el público recibe el texto en tiempo real desde su teléfono y producción puede incorporarlo a un proyector, OBS, vMix o al stream del evento.
 

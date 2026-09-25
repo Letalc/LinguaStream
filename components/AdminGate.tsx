@@ -44,7 +44,7 @@ export function AdminGate({
       )}
       {demoAvailable && (
         <p className="mt-2 text-xs text-neutral-400">
-          Modo demo: hasta 3 salas en vivo a la vez y 20 minutos por sesión.
+          Modo demo: acceso directo para probar la plataforma.
         </p>
       )}
 

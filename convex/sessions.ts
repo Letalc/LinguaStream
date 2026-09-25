@@ -2,7 +2,7 @@ import { ConvexError, v } from "convex/values";
 import { internalMutation, internalQuery, mutation, query, MutationCtx, QueryCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import schema, { langValidator, statusValidator } from "./schema";
-import { DEMO_MAX_LIVE_SESSIONS, requireAdmin } from "./lib/auth";
+import { requireAdmin } from "./lib/auth";
 import { requireActiveConference, requireConferenceAdmin } from "./conferences";
 
 const conferenceFilter = v.optional(v.union(v.id("conferences"), v.null()));
@@ -185,23 +185,11 @@ export const claim = mutation({
     force: v.boolean(),
   },
   handler: async (ctx, { key, sessionId, consoleId, force }) => {
-    const role = requireAdmin(key);
+    requireAdmin(key);
     const session = await mustGet(ctx, sessionId);
     if (session.conferenceId) {
       requireConferenceAdmin(key);
       await requireActiveConference(ctx, session.conferenceId);
-    }
-    if (role === "demo" && session.status !== "live") {
-      const live = await ctx.db
-        .query("sessions")
-        .withIndex("by_status", (q) => q.eq("status", "live"))
-        .take(DEMO_MAX_LIVE_SESSIONS);
-      if (live.length >= DEMO_MAX_LIVE_SESSIONS) {
-        return {
-          ok: false as const,
-          reason: `Demo mode allows ${DEMO_MAX_LIVE_SESSIONS} live rooms at a time. Stop one first`,
-        };
-      }
     }
     const stats = await getStats(ctx, sessionId);
     const ownerAlive =
