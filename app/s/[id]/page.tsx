@@ -11,7 +11,8 @@ import { useWakeLock } from "@/lib/useWakeLock";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
 import { LagIndicator } from "@/components/LagIndicator";
 import { SpeakLines } from "@/components/SpeakLines";
-import { AArrowDown, AArrowUp, ArrowLeft, Contrast, Languages, Volume2, VolumeX } from "lucide-react";
+import { AArrowDown, AArrowUp, ArrowLeft, Contrast, Languages, Volume2, VolumeX, Users } from "lucide-react";
+import usePresence from "@convex-dev/presence/react";
 import { JoinDialog, type JoinChoice, type ViewMode } from "@/components/JoinDialog";
 import { AccessibleView } from "@/components/AccessibleView";
 import { Dot } from "@/components/ui/Dot";
@@ -31,6 +32,23 @@ export default function AudiencePage({ params }: { params: Promise<{ id: string 
   const [picking, setPicking] = useState(false); // "Cambiar" reopens the dialog
   const [speak, setSpeak] = useState(false);
   useWakeLock();
+
+  const [viewerId] = useState(() => {
+    if (typeof window === "undefined") return "anon";
+    try {
+      let vid = localStorage.getItem("live-subs-viewer-id");
+      if (!vid) {
+        vid = "viewer-" + Math.random().toString(36).slice(2, 10);
+        localStorage.setItem("live-subs-viewer-id", vid);
+      }
+      return vid;
+    } catch {
+      return "viewer-" + Math.random().toString(36).slice(2, 10);
+    }
+  });
+
+  const presenceState = usePresence(api.presence, id, viewerId);
+  const viewerCount = Math.max(1, presenceState?.filter((p) => p.online).length ?? 1);
 
   // Remember the viewer's preferences on this device.
   useEffect(() => {
@@ -148,6 +166,9 @@ export default function AudiencePage({ params }: { params: Promise<{ id: string 
       <SubtitleFeed sessionId={sessionId} lang={current} className={`flex-1 px-4 py-4 ${SIZES[size]}`} limit={100} />
       {speak && <SpeakLines key={current} sessionId={sessionId} lang={current} />}
       <footer className="flex items-center gap-4 border-t border-neutral-800 px-4 py-2 text-sm">
+        <span className="flex items-center gap-1.5 text-xs text-neutral-400">
+          <Users className="h-3.5 w-3.5" /> {viewerCount} {viewerCount === 1 ? "espectador" : "espectadores"}
+        </span>
         {session.status === "ended" ? (
           <>
             <span className="text-neutral-400">Descargar:</span>
