@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { AdminGate } from "@/components/AdminGate";
+import { ShareDialog } from "@/components/ShareDialog";
 import { LANGS, langLabel, type Lang } from "@/lib/langs";
 
 export default function AdminPage() {
@@ -89,6 +90,7 @@ function Dashboard({ adminKey, logout }: { adminKey: string; logout: () => void 
                 <Link className="underline" href={`/s/${s._id}`} target="_blank">Audiencia</Link>
                 <Link className="underline" href={`/overlay/${s._id}?lang=${s.targetLangs[0] ?? s.sourceLang}`} target="_blank">Overlay</Link>
                 <a className="underline" href={`/api/export/${s._id}?lang=${s.sourceLang}&format=srt`}>SRT</a>
+                {s.code && <ShareButton id={s._id} code={s.code} title={s.title} />}
                 <DeleteButton adminKey={adminKey} id={s._id} />
               </div>
             </article>
@@ -108,6 +110,16 @@ function Stat({ label, value, warn }: { label: string; value: string; warn?: boo
       <dt className="text-neutral-500">{label}</dt>
       <dd className={`mt-0.5 font-mono text-sm ${warn ? "text-amber-400" : ""}`}>{value}</dd>
     </div>
+  );
+}
+
+function ShareButton({ id, code, title }: { id: string; code: string; title: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button className="text-cyan-300 underline" onClick={() => setOpen(true)}>QR {code}</button>
+      {open && <ShareDialog sessionId={id} code={code} title={title} onClose={() => setOpen(false)} />}
+    </>
   );
 }
 
