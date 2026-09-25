@@ -5,6 +5,7 @@ import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { LANGS, type Lang } from "@/lib/langs";
 import { GlossaryImport } from "./GlossaryImport";
+import { Plus, Sparkles, X } from "lucide-react";
 
 const input =
   "w-full rounded-sm border border-line bg-black/40 px-3 py-2.5 font-mono text-sm placeholder:text-neutral-600 focus:border-accent focus:outline-none";
@@ -110,7 +111,7 @@ export function GlossaryPanel({ adminKey }: { adminKey: string }) {
         onClick={() => setImporting(true)}
         className="mt-4 w-full rounded-sm border border-accent/50 py-2.5 font-mono text-[11px] uppercase tracking-[0.25em] text-accent hover:bg-accent/5"
       >
-        ✦ Extraer de la presentación (IA)
+        <span className="inline-flex items-center gap-2"><Sparkles className="h-3.5 w-3.5" /> Extraer de la presentación (IA)</span>
       </button>
       <form
         className="mt-4 flex gap-2"
@@ -124,7 +125,7 @@ export function GlossaryPanel({ adminKey }: { adminKey: string }) {
       >
         <input className={input} placeholder="Término (ej. Kubernetes)" value={term} onChange={(e) => setTerm(e.target.value)} />
         <input className={`${input} max-w-28`} placeholder="Trad. ES" value={es} onChange={(e) => setEs(e.target.value)} />
-        <button className="rounded-sm border border-line px-3 font-mono text-accent hover:border-accent" aria-label="Agregar término">+</button>
+        <button className="rounded-sm border border-line px-3 font-mono text-accent hover:border-accent" aria-label="Agregar término"><Plus className="h-4 w-4" /></button>
       </form>
       <ul className="mt-4 flex flex-wrap gap-2">
         {terms?.map((t) => (
@@ -133,7 +134,7 @@ export function GlossaryPanel({ adminKey }: { adminKey: string }) {
             {t.translations?.es && <span className="text-neutral-500">→ {t.translations.es}</span>}
             {t.sessionTitle && <span className="max-w-24 truncate text-neutral-600" title={t.sessionTitle}>@{t.sessionTitle}</span>}
             <button className="text-neutral-500 hover:text-red-400" onClick={() => remove({ key: adminKey, id: t._id })} aria-label={`Quitar ${t.term}`}>
-              ×
+              <X className="h-3 w-3" />
             </button>
           </li>
         ))}

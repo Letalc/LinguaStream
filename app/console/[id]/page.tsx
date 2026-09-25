@@ -17,6 +17,7 @@ import { startCapture, listInputDevices } from "@/lib/audio-capture";
 import { langLabel, type Lang } from "@/lib/langs";
 import { SubtitleFeed } from "@/components/SubtitleFeed";
 import { ShareDialog } from "@/components/ShareDialog";
+import { ArrowLeft, QrCode, TriangleAlert } from "lucide-react";
 
 export default function ConsolePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -191,7 +192,7 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
     <main className="mx-auto w-full max-w-5xl px-4 py-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <Link href="/admin" className="text-sm text-neutral-400 hover:text-white">← Panel</Link>
+          <Link href="/admin" className="inline-flex items-center gap-1 text-sm text-neutral-400 hover:text-white"><ArrowLeft className="h-4 w-4" /> Panel</Link>
           <h1 className="mt-1 text-2xl font-semibold">{session.title}</h1>
           <p className="text-sm text-neutral-400">
             {session.room} · {session.speaker ?? "—"} · origen {langLabel(session.sourceLang)}
@@ -203,7 +204,7 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
             onClick={() => setSharing(true)}
             className="ml-auto rounded-lg bg-cyan-300 px-4 py-2 font-mono text-sm font-semibold tracking-widest text-black"
           >
-            QR · {session.code}
+            <span className="inline-flex items-center gap-2"><QrCode className="h-4 w-4" /> {session.code}</span>
           </button>
         )}
         <span className="flex items-center gap-2 rounded-full border border-neutral-800 px-3 py-1 text-sm">
@@ -223,10 +224,10 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
             <option value="tab">Audio de una pestaña / pantalla</option>
             {devices.map((d) => (
               <option key={d.deviceId} value={d.deviceId}>
-                🎙 {d.label || "Micrófono"}
+                Micrófono: {d.label || "sin nombre"}
               </option>
             ))}
-            {devices.length === 0 && <option value="">🎙 Micrófono por defecto</option>}
+            {devices.length === 0 && <option value="">Micrófono por defecto</option>}
           </select>
 
           {!running ? (
@@ -261,7 +262,7 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
             </div>
           </div>
         </div>
-        {lastError && <p className="mt-3 text-sm text-amber-400">⚠ {lastError}</p>}
+        {lastError && <p className="mt-3 flex items-start gap-2 text-sm text-amber-400"><TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" /> {lastError}</p>}
         {running && (
           <p className={`mt-3 text-xs ${hidden ? "text-amber-400" : "text-neutral-500"}`}>
             Tip: dejá esta consola en una <b>ventana aparte</b> (no en otra pestaña de la misma ventana): los

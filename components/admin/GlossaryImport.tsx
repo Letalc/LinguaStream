@@ -4,6 +4,7 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { useRef, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { Check, CircleAlert, Sparkles, Upload, X } from "lucide-react";
 
 type Candidate = {
   term: string;
@@ -94,12 +95,12 @@ export function GlossaryImport({ adminKey, onClose }: { adminKey: string; onClos
       >
         <div className="flex items-start justify-between">
           <div>
-            <p className="font-mono text-[11px] uppercase tracking-[0.3em] text-accent">■ Glosario desde presentación</p>
+            <p className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.3em] text-accent"><Sparkles className="h-3.5 w-3.5" /> Glosario desde presentación</p>
             <p className="mt-1 text-sm text-neutral-400">
               Subí las slides de la charla y Gemini arma el diccionario de términos: nombres, productos, siglas y jerga.
             </p>
           </div>
-          <button onClick={onClose} className="text-neutral-500 hover:text-white" aria-label="Cerrar">✕</button>
+          <button onClick={onClose} className="text-neutral-500 hover:text-white" aria-label="Cerrar"><X className="h-5 w-5" /></button>
         </div>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-[auto_1fr]">
@@ -134,7 +135,7 @@ export function GlossaryImport({ adminKey, onClose }: { adminKey: string; onClos
               onClick={() => fileRef.current?.click()}
               className="w-full rounded-sm border border-dashed border-accent/50 py-8 font-mono text-xs uppercase tracking-[0.25em] text-accent hover:bg-accent/5 disabled:opacity-40"
             >
-              ⤒ Subir PDF de la presentación
+              <span className="inline-flex items-center gap-2"><Upload className="h-4 w-4" /> Subir PDF de la presentación</span>
             </button>
             <form
               className="flex gap-2"
@@ -156,10 +157,10 @@ export function GlossaryImport({ adminKey, onClose }: { adminKey: string; onClos
         )}
 
         {busy && <p className="mt-4 animate-pulse font-mono text-xs text-accent">{busy}</p>}
-        {error && <p className="mt-4 text-sm text-amber-400">⚠ {error}</p>}
+        {error && <p className="mt-4 flex items-start gap-2 text-sm text-amber-400"><CircleAlert className="mt-0.5 h-4 w-4 shrink-0" /> {error}</p>}
         {saved !== null && (
-          <p className="mt-4 text-sm text-accent">
-            ✓ {saved} términos agregados. Se aplican al iniciar (o reiniciar) la transmisión de la sala.
+          <p className="mt-4 flex items-start gap-2 text-sm text-accent">
+            <Check className="mt-0.5 h-4 w-4 shrink-0" /> {saved} términos agregados. Se aplican al iniciar (o reiniciar) la transmisión de la sala.
           </p>
         )}
 

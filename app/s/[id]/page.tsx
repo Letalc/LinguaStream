@@ -11,6 +11,9 @@ import { useWakeLock } from "@/lib/useWakeLock";
 import { ConnectionBadge } from "@/components/ConnectionBadge";
 import { LagIndicator } from "@/components/LagIndicator";
 import { SpeakLines } from "@/components/SpeakLines";
+import { AArrowDown, AArrowUp, ArrowLeft, Contrast, Volume2, VolumeX } from "lucide-react";
+import { Dot } from "@/components/ui/Dot";
+import { LangBadge } from "@/components/ui/LangBadge";
 
 const SIZES = ["text-lg", "text-2xl", "text-4xl"];
 
@@ -56,7 +59,7 @@ export default function AudiencePage({ params }: { params: Promise<{ id: string 
   if (!chosen) {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col justify-center px-6">
-        <p className="font-mono text-[11px] tracking-[0.3em] text-cyan-300">● {session.code ?? "EN VIVO"}</p>
+        <p className="flex items-center gap-2 font-mono text-[11px] tracking-[0.3em] text-accent"><Dot className="bg-accent" pulse /> {session.code ?? "EN VIVO"}</p>
         <h1 className="mt-2 text-2xl font-semibold">{session.title}</h1>
         <p className="mt-1 text-sm text-neutral-400">{session.room}{session.speaker && ` · ${session.speaker}`}</p>
         <p className="mt-10 text-neutral-300">¿En qué idioma querés los subtítulos?</p>
@@ -70,7 +73,7 @@ export default function AudiencePage({ params }: { params: Promise<{ id: string 
               }}
               className="flex w-full items-center gap-4 rounded-2xl border border-neutral-800 bg-neutral-950 px-5 py-4 text-left text-lg hover:border-cyan-300"
             >
-              <span className="text-3xl">{l.flag}</span>
+              <LangBadge code={l.code} className="text-accent" />
               <span className="flex-1">{l.label}</span>
               {l.code === session.sourceLang && <span className="text-xs text-neutral-500">original</span>}
             </button>
@@ -85,7 +88,7 @@ export default function AudiencePage({ params }: { params: Promise<{ id: string 
       <ConnectionBadge />
       <header className="border-b border-neutral-800 px-4 py-3">
         <div className="flex items-center justify-between gap-2">
-          <Link href="/" className="text-sm text-neutral-400">←</Link>
+          <Link href="/" className="text-neutral-400" aria-label="Volver"><ArrowLeft className="h-5 w-5" /></Link>
           <div className="min-w-0 flex-1">
             <h1 className="truncate font-medium">{session.title}</h1>
             <p className="truncate text-xs text-neutral-400">{session.room}{session.speaker && ` · ${session.speaker}`}</p>
@@ -103,21 +106,21 @@ export default function AudiencePage({ params }: { params: Promise<{ id: string 
               onClick={() => setLang(l.code)}
               className={`rounded-full px-3 py-1 ${current === l.code ? "bg-white text-black" : "border border-neutral-700"}`}
             >
-              {l.flag} {l.label}
+              <span className="inline-flex items-center gap-1.5"><LangBadge code={l.code} className="h-5 min-w-7 text-[10px]" /> {l.label}</span>
               {l.code === session.sourceLang && <span className="ml-1 text-xs opacity-60">(original)</span>}
             </button>
           ))}
           <div className="ml-auto flex items-center gap-1">
-            <button aria-label="Achicar texto" className="rounded border border-neutral-700 px-2" onClick={() => setSize((s) => Math.max(0, s - 1))}>A−</button>
-            <button aria-label="Agrandar texto" className="rounded border border-neutral-700 px-2" onClick={() => setSize((s) => Math.min(SIZES.length - 1, s + 1))}>A+</button>
-            <button aria-label="Alto contraste" className="rounded border border-neutral-700 px-2" onClick={() => setContrast((c) => !c)}>◐</button>
+            <button aria-label="Achicar texto" className="rounded border border-neutral-700 px-2" onClick={() => setSize((s) => Math.max(0, s - 1))}><AArrowDown className="h-4 w-4" /></button>
+            <button aria-label="Agrandar texto" className="rounded border border-neutral-700 px-2" onClick={() => setSize((s) => Math.min(SIZES.length - 1, s + 1))}><AArrowUp className="h-4 w-4" /></button>
+            <button aria-label="Alto contraste" className="rounded border border-neutral-700 px-2" onClick={() => setContrast((c) => !c)}><Contrast className="h-4 w-4" /></button>
             <button
               aria-label="Escuchar la traducción"
               aria-pressed={speak}
               className={`rounded border px-2 ${speak ? "border-cyan-300 text-cyan-300" : "border-neutral-700"}`}
               onClick={() => setSpeak((x) => !x)}
             >
-              🔊
+              {speak ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
             </button>
           </div>
         </div>

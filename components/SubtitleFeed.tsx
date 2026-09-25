@@ -37,7 +37,7 @@ export function SubtitleFeed({
       {feed?.partial && (
         <p className="mb-2">
           {feed.partial}
-          <span className="ml-0.5 inline-block w-[0.5ch] animate-pulse opacity-70">▍</span>
+          <span aria-hidden className="ml-1 inline-block h-[1em] w-[3px] translate-y-[0.15em] animate-pulse bg-current opacity-70" />
         </p>
       )}
       <div ref={bottom} />

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import type { Lang } from "@/lib/langs";
+import { Dot } from "@/components/ui/Dot";
 
 /**
  * Delivery lag: time between Gemini producing a piece of text (console clock) and this
@@ -29,8 +30,8 @@ export function LagIndicator({ sessionId, lang, limit }: { sessionId: Id<"sessio
   if (lag === null) return null;
   const color = lag < 1000 ? "text-emerald-400" : lag < 2500 ? "text-amber-400" : "text-red-400";
   return (
-    <span className={`font-mono text-xs ${color}`} title="Demora de entrega de los subtítulos a este dispositivo">
-      ● lag {(lag / 1000).toFixed(1)} s
+    <span className={`inline-flex items-center gap-1.5 font-mono text-xs ${color}`} title="Demora de entrega de los subtítulos a este dispositivo">
+      <Dot /> lag {(lag / 1000).toFixed(1)} s
     </span>
   );
 }

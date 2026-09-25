@@ -4,6 +4,7 @@ import { useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { isStale, type DashboardSession } from "./health";
+import { TriangleAlert } from "lucide-react";
 
 type Tone = "danger" | "warn" | "ok" | "info";
 type Toast = { id: string; tone: Tone; title: string; body: string };
@@ -30,7 +31,7 @@ export function AlertsFeed() {
   const events = useQuery(api.events.recent, { limit: 20 });
   return (
     <section className="rounded-md border border-line bg-panel p-5">
-      <h2 className="font-mono text-[11px] uppercase tracking-[0.3em] text-neutral-300">▲ Alertas</h2>
+      <h2 className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.3em] text-neutral-300"><TriangleAlert className="h-3.5 w-3.5" /> Alertas</h2>
       <ul className="mt-3 max-h-80 space-y-2 overflow-y-auto pr-1">
         {events?.length === 0 && <li className="font-mono text-[11px] text-neutral-600">Sin eventos todavía.</li>}
         {events?.map((e) => {

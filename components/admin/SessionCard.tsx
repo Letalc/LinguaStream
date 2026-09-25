@@ -53,7 +53,7 @@ export function SessionCard({ s, now, adminKey }: { s: DashboardSession; now: nu
         <Metric label="Líneas" value={String(s.stats?.segmentCount ?? 0)} />
         <Metric
           label="Errores"
-          value={`${s.stats?.errorCount ?? 0}${s.stats?.reconnectCount ? ` · ${s.stats.reconnectCount}↻` : ""}`}
+          value={`${s.stats?.errorCount ?? 0}${s.stats?.reconnectCount ? ` · ${s.stats.reconnectCount} rec.` : ""}`}
           warn={(s.stats?.errorCount ?? 0) > 0}
         />
       </dl>
