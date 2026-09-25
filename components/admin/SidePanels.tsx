@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "convex/react";
 import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { LANGS, type Lang } from "@/lib/langs";
+import { GlossaryImport } from "./GlossaryImport";
 
 const input =
   "w-full rounded-sm border border-line bg-black/40 px-3 py-2.5 font-mono text-sm placeholder:text-neutral-600 focus:border-accent focus:outline-none";
@@ -94,15 +95,23 @@ export function GlossaryPanel({ adminKey }: { adminKey: string }) {
   const remove = useMutation(api.glossary.remove);
   const [term, setTerm] = useState("");
   const [es, setEs] = useState("");
+  const [importing, setImporting] = useState(false);
 
   return (
     <section className="rounded-md border border-line bg-panel p-5">
+      {importing && <GlossaryImport adminKey={adminKey} onClose={() => setImporting(false)} />}
       <h2 className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.3em]">
         <span className="h-2 w-2 border border-neutral-400" /> Glosario del evento
       </h2>
       <p className="mt-3 text-xs leading-relaxed text-neutral-500">
         Términos técnicos y nombres propios. Mejoran el reconocimiento de voz y fuerzan la traducción en sesiones nuevas o reiniciadas.
       </p>
+      <button
+        onClick={() => setImporting(true)}
+        className="mt-4 w-full rounded-sm border border-accent/50 py-2.5 font-mono text-[11px] uppercase tracking-[0.25em] text-accent hover:bg-accent/5"
+      >
+        ✦ Extraer de la presentación (IA)
+      </button>
       <form
         className="mt-4 flex gap-2"
         onSubmit={async (e) => {
@@ -122,6 +131,7 @@ export function GlossaryPanel({ adminKey }: { adminKey: string }) {
           <li key={t._id} className="flex items-center gap-2 rounded-sm border border-accent/30 px-2 py-1 font-mono text-[11px] text-accent">
             {t.term}
             {t.translations?.es && <span className="text-neutral-500">→ {t.translations.es}</span>}
+            {t.sessionTitle && <span className="max-w-24 truncate text-neutral-600" title={t.sessionTitle}>@{t.sessionTitle}</span>}
             <button className="text-neutral-500 hover:text-red-400" onClick={() => remove({ key: adminKey, id: t._id })} aria-label={`Quitar ${t.term}`}>
               ×
             </button>
