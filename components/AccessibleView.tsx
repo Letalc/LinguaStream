@@ -19,6 +19,7 @@ import { api } from "@/convex/_generated/api";
 import { Doc, Id } from "@/convex/_generated/dataModel";
 import { toEmbedUrl } from "@/lib/embed";
 import { langLabel, type Lang } from "@/lib/langs";
+import { useStoredState } from "@/lib/useStoredState";
 
 /**
  * Reading view for deaf and hard-of-hearing people:
@@ -41,6 +42,16 @@ const SPEAKING_WINDOW_MS = 1500;
 type Prefs = { theme: number; size: number; vibrate: boolean; showInterpreter: boolean };
 const DEFAULT_PREFS: Prefs = { theme: 0, size: 2, vibrate: true, showInterpreter: true };
 
+function decodePreferences(raw: string): Prefs {
+  const p = JSON.parse(raw);
+  return {
+    theme: Number.isInteger(p?.theme) ? Math.max(0, Math.min(THEMES.length - 1, p.theme)) : 0,
+    size: Number.isInteger(p?.size) ? Math.max(0, Math.min(SIZES.length - 1, p.size)) : 2,
+    vibrate: typeof p?.vibrate === "boolean" ? p.vibrate : true,
+    showInterpreter: typeof p?.showInterpreter === "boolean" ? p.showInterpreter : true,
+  };
+}
+
 export function AccessibleView({
   session,
   sessionId,
@@ -53,26 +64,12 @@ export function AccessibleView({
   onChange: () => void;
 }) {
   const feed = useQuery(api.segments.feed, { sessionId, lang, limit: 100 });
-  const [prefs, setPrefs] = useState<Prefs>(DEFAULT_PREFS);
+  const [prefs, setPrefs] = useStoredState("live-subs-a11y", DEFAULT_PREFS, decodePreferences);
   const [paused, setPaused] = useState(false);
   const theme = THEMES[prefs.theme];
   const embed = session.interpreterUrl ? toEmbedUrl(session.interpreterUrl) : null;
 
-  // Per-device preferences.
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("live-subs-a11y") ?? "null");
-      if (saved) setPrefs({ ...DEFAULT_PREFS, ...saved });
-    } catch {}
-  }, []);
-  const update = (p: Partial<Prefs>) =>
-    setPrefs((prev) => {
-      const next = { ...prev, ...p };
-      try {
-        localStorage.setItem("live-subs-a11y", JSON.stringify(next));
-      } catch {}
-      return next;
-    });
+  const update = (p: Partial<Prefs>) => setPrefs((prev) => ({ ...prev, ...p }));
 
   // --- Speaking indicator: in-progress text changing ⇒ someone is talking. Local clock only.
   const [lastChangeAt, setLastChangeAt] = useState(0);

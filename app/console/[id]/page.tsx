@@ -182,7 +182,7 @@ function Console({ adminKey, sessionId }: { adminKey: string; sessionId: Id<"ses
     setStatus({ key: adminKey, sessionId, consoleId, status: s }).catch(() => {});
   };
 
-  useEffect(() => () => void stop(), []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => void stop(), []);
 
   if (session === undefined) return <div className="p-8 text-neutral-400">Cargando…</div>;
   if (session === null) return <div className="p-8">Sesión no encontrada.</div>;

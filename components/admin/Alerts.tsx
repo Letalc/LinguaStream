@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "convex/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { isStale, type DashboardSession } from "./health";
 import { TriangleAlert } from "lucide-react";
@@ -64,14 +64,26 @@ export function AlertToasts({ sessions, now, sound }: { sessions: DashboardSessi
   const [toasts, setToasts] = useState<Toast[]>([]);
   const seenEvents = useRef<Set<string> | null>(null);
   const staleBefore = useRef<Set<string> | null>(null);
-  const soundRef = useRef(sound);
-  soundRef.current = sound;
+  const timers = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  useEffect(() => {
+    const active = timers.current;
+    return () => { for (const timer of active) clearTimeout(timer); active.clear(); };
+  }, []);
 
-  const push = (t: Toast) => {
-    setToasts((prev) => [t, ...prev.filter((x) => x.id !== t.id)].slice(0, 4));
-    if (soundRef.current && t.tone !== "ok" && t.tone !== "info") beep(t.tone === "danger" ? 440 : 660);
-    setTimeout(() => setToasts((prev) => prev.filter((x) => x.id !== t.id)), 7000);
-  };
+  const push = useEffectEvent((t: Toast) => {
+    // Deliver notifications asynchronously after the subscription update.
+    const delivery = setTimeout(() => {
+      timers.current.delete(delivery);
+      setToasts((prev) => [t, ...prev.filter((x) => x.id !== t.id)].slice(0, 4));
+      if (sound && t.tone !== "ok" && t.tone !== "info") beep(t.tone === "danger" ? 440 : 660);
+      const expiry = setTimeout(() => {
+        setToasts((prev) => prev.filter((x) => x.id !== t.id));
+        timers.current.delete(expiry);
+      }, 7000);
+      timers.current.add(expiry);
+    }, 0);
+    timers.current.add(delivery);
+  });
 
   // Backend events: toast only the ones that arrive after the page loaded.
   useEffect(() => {
@@ -87,7 +99,7 @@ export function AlertToasts({ sessions, now, sound }: { sessions: DashboardSessi
       const meta = EVENT_META[e.type];
       push({ id: e._id, tone: meta.tone, title: `${meta.label} · ${e.room}`, body: e.message ? `${e.title} — ${e.message}` : e.title });
     }
-  }, [events]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [events]);
 
   // Client-side "no signal" detection.
   useEffect(() => {
@@ -104,7 +116,7 @@ export function AlertToasts({ sessions, now, sound }: { sessions: DashboardSessi
       }
     }
     staleBefore.current = staleNow;
-  }, [sessions, now]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [sessions, now]);
 
   return (
     <div className="pointer-events-none fixed bottom-14 right-4 z-50 flex w-80 flex-col-reverse gap-2" aria-live="assertive">

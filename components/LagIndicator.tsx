@@ -24,7 +24,9 @@ export function LagIndicator({ sessionId, lang, limit }: { sessionId: Id<"sessio
     const sample = Math.min(30_000, Math.max(0, Date.now() - at));
     // Ignore stale partials (e.g. page opened during a pause).
     if (sample > 10_000) return;
-    setLag((prev) => (prev === null ? sample : Math.round(prev * 0.7 + sample * 0.3)));
+    // Snapshot the local arrival clock after the reactive update is painted.
+    const frame = requestAnimationFrame(() => setLag((prev) => (prev === null ? sample : Math.round(prev * 0.7 + sample * 0.3))));
+    return () => cancelAnimationFrame(frame);
   }, [at]);
 
   if (lag === null) return null;

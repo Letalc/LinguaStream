@@ -2,7 +2,7 @@
 
 import { useQuery } from "convex/react";
 import Link from "next/link";
-import { use, useEffect, useState } from "react";
+import { use, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { SubtitleFeed } from "@/components/SubtitleFeed";
@@ -14,57 +14,42 @@ import { SpeakLines } from "@/components/SpeakLines";
 import { AArrowDown, AArrowUp, ArrowLeft, Contrast, Languages, Volume2, VolumeX } from "lucide-react";
 import { JoinDialog, type JoinChoice, type ViewMode } from "@/components/JoinDialog";
 import { AccessibleView } from "@/components/AccessibleView";
-import { Dot } from "@/components/ui/Dot";
+import { useStoredState, useHydrated } from "@/lib/useStoredState";
 import { LangBadge } from "@/components/ui/LangBadge";
 
 const SIZES = ["text-lg", "text-2xl", "text-4xl"];
+type Preferences = { lang: Lang | null; size: number; contrast: boolean; mode: ViewMode };
+const DEFAULT_PREFS: Preferences = { lang: null, size: 1, contrast: false, mode: "standard" };
+function decodePreferences(raw: string): Preferences {
+  const p = JSON.parse(raw);
+  return {
+    lang: isLang(p?.lang) ? p.lang : null,
+    size: Number.isInteger(p?.size) ? Math.max(0, Math.min(SIZES.length - 1, p.size)) : 1,
+    contrast: p?.contrast === true,
+    mode: p?.mode === "accessible" ? "accessible" : "standard",
+  };
+}
+const decodeJoined = (raw: string) => raw === "1" || raw === "true";
 
 export default function AudiencePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const sessionId = id as Id<"sessions">;
   const session = useQuery(api.sessions.get, { sessionId });
-  const [lang, setLang] = useState<Lang | null>(null);
-  const [size, setSize] = useState(1);
-  const [contrast, setContrast] = useState(false);
-  const [mode, setMode] = useState<ViewMode>("standard");
-  const [joined, setJoined] = useState<boolean | null>(null); // null = not checked yet
+  const [prefs, setPrefs] = useStoredState("live-subs-prefs", DEFAULT_PREFS, decodePreferences);
+  const { lang, size, contrast, mode } = prefs;
+  const setLang = (lang: Lang) => setPrefs((p) => ({ ...p, lang }));
+  const setSize = (update: (size: number) => number) => setPrefs((p) => ({ ...p, size: update(p.size) }));
+  const setContrast = (update: (contrast: boolean) => boolean) => setPrefs((p) => ({ ...p, contrast: update(p.contrast) }));
+  const [joined, setJoined] = useStoredState(`joined:${id}`, false, decodeJoined, "sessionStorage");
+  const hydrated = useHydrated();
   const [picking, setPicking] = useState(false); // "Cambiar" reopens the dialog
   const [speak, setSpeak] = useState(false);
   useWakeLock();
 
-  // Remember the viewer's preferences on this device.
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("live-subs-prefs");
-      if (saved) {
-        const p = JSON.parse(saved);
-        if (typeof p.size === "number") setSize(p.size);
-        if (typeof p.contrast === "boolean") setContrast(p.contrast);
-        if (isLang(p.lang)) setLang(p.lang);
-        if (p.mode === "accessible" || p.mode === "standard") setMode(p.mode);
-      }
-    } catch {}
-    // Ask once per visit to this room (tab session), not once per device.
-    try {
-      setJoined(sessionStorage.getItem(`joined:${id}`) === "1");
-    } catch {
-      setJoined(false);
-    }
-  }, [id]);
-  useEffect(() => {
-    try {
-      localStorage.setItem("live-subs-prefs", JSON.stringify({ size, contrast, lang, mode }));
-    } catch {}
-  }, [size, contrast, lang, mode]);
-
   const confirmJoin = (c: JoinChoice) => {
-    setLang(c.lang);
-    setMode(c.mode);
+    setPrefs((p) => ({ ...p, lang: c.lang, mode: c.mode }));
     setJoined(true);
     setPicking(false);
-    try {
-      sessionStorage.setItem(`joined:${id}`, "1");
-    } catch {}
   };
 
   if (session === undefined) return <div className="p-8 text-neutral-400">Cargando…</div>;
@@ -74,7 +59,7 @@ export default function AudiencePage({ params }: { params: Promise<{ id: string 
   // Default: Spanish if available (Nerdearla's audience), else the original language.
   const current: Lang = lang && available.includes(lang) ? lang : available.includes("es") ? "es" : session.sourceLang;
 
-  const dialog = (joined === false || picking) && (
+  const dialog = (hydrated && !joined || picking) && (
     <JoinDialog
       title={session.title}
       subtitle={`${session.room}${session.speaker ? ` · ${session.speaker}` : ""}${session.code ? ` · Código ${session.code}` : ""}`}
