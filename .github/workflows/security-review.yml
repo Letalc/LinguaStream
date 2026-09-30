@@ -4,13 +4,23 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, labeled]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   gemini:
     if: github.event.action != 'labeled' || github.event.label.name == 'security-review'
+    permissions:
+      contents: read
+      pull-requests: write
     uses: Letalc/security-review-workflows/.github/workflows/gemini-review.yml@main
     secrets: inherit
 
   semgrep:
     if: github.event.action != 'labeled' || github.event.label.name == 'security-review'
+    permissions:
+      contents: read
+      pull-requests: write
     uses: Letalc/security-review-workflows/.github/workflows/semgrep.yml@main
     secrets: inherit
