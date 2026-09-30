@@ -1,0 +1,16 @@
+name: Security Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+jobs:
+  gemini:
+    if: github.event.action != 'labeled' || github.event.label.name == 'security-review'
+    uses: Letalc/security-review-workflows/.github/workflows/gemini-review.yml@main
+    secrets: inherit
+
+  semgrep:
+    if: github.event.action != 'labeled' || github.event.label.name == 'security-review'
+    uses: Letalc/security-review-workflows/.github/workflows/semgrep.yml@main
+    secrets: inherit
