@@ -11,9 +11,9 @@ jobs:
   security:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: sshnaidm/gemini-code-review-action@v2
+      - uses: sshnaidm/gemini-code-review-action@ecc2434351ef76b0084b788a3d61ec7d3acf44f9 # v2
         with:
           gemini-key: ${{ secrets.GEMINI_API_KEY }}
           model: gemini-3.1-pro-preview
