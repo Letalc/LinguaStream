@@ -16,6 +16,7 @@ jobs:
       - uses: sshnaidm/gemini-code-review-action@v2
         with:
           gemini-key: ${{ secrets.GEMINI_API_KEY }}
+          model: gemini-3.1-pro-preview
           review-title: 'Gemini Security Review'
           prompt: |
             Actua como un revisor de seguridad senior (AppSec). Analiza SOLO el diff de este Pull Request y reporta posibles brechas de seguridad, priorizadas por severidad (Critico/Alto/Medio/Bajo/Informativo).
