@@ -1,0 +1,28 @@
+name: Security Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  gemini:
+    if: github.event.action != 'labeled' || github.event.label.name == 'security-review'
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: Letalc/security-review-workflows/.github/workflows/gemini-review.yml@4586a9b4e60aeb676971304daec99a7636682f1c
+    secrets:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+  semgrep:
+    if: github.event.action != 'labeled' || github.event.label.name == 'security-review'
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: Letalc/security-review-workflows/.github/workflows/semgrep.yml@4586a9b4e60aeb676971304daec99a7636682f1c
+    secrets:
+      SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
