@@ -12,10 +12,16 @@ jobs:
   semgrep:
     name: Semgrep scan
     runs-on: ubuntu-latest
-    container:
-      image: semgrep/semgrep
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Semgrep
+        run: pip install semgrep
 
       - name: Run Semgrep CI (OWASP Top 10 + CWE Top 25 + secretos)
         run: semgrep ci
