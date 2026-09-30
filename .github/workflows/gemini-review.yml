@@ -1,0 +1,25 @@
+name: Gemini Security Review
+
+permissions:
+  pull-requests: write
+  contents: read
+
+on:
+  pull_request: {}
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: sshnaidm/gemini-code-review-action@v2
+        with:
+          gemini-key: ${{ secrets.GEMINI_API_KEY }}
+          review-title: 'Gemini Security Review'
+          prompt: |
+            Actua como un revisor de seguridad senior (AppSec). Analiza SOLO el diff de este Pull Request y reporta posibles brechas de seguridad, priorizadas por severidad (Critico/Alto/Medio/Bajo/Informativo).
+
+            Enfocate en: inyeccion (SQL/NoSQL/comandos/XSS/SSRF/path traversal), autenticacion y sesion (JWT mal validados, tokens sin expiracion, comparaciones inseguras), control de acceso (IDOR, falta de verificacion de permisos), manejo de secretos (API keys o credenciales hardcodeadas), criptografia debil, validacion de entrada y deserializacion insegura, dependencias vulnerables, configuracion insegura (CORS abierto, debug activo, cabeceras de seguridad faltantes) y exposicion de datos sensibles en logs o errores.
+
+            Para cada hallazgo indica: severidad, archivo:linea, descripcion (con CWE u OWASP Top 10 aplicable), escenario de explotacion concreto, y recomendacion especifica de correccion. Si no hay problemas de seguridad, dilo explicitamente. No comentes sobre estilo o rendimiento.
