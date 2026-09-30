@@ -1,0 +1,32 @@
+name: Semgrep SAST (seguridad)
+
+on:
+  pull_request: {}
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  semgrep:
+    name: Semgrep scan
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Semgrep CI (OWASP Top 10 + CWE Top 25 + secretos)
+        run: semgrep ci
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+          SEMGREP_RULES: p/owasp-top-ten p/cwe-top-25 p/secrets p/security-audit
+
+      - name: Subir resultados como artifact (respaldo)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-results
+          path: semgrep-results.*
+          if-no-files-found: ignore
