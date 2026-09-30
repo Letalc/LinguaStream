@@ -1,0 +1,47 @@
+name: Security Review Trigger
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  trigger:
+    if: github.event.issue.pull_request != null && contains(github.event.comment.body, '@seguridad')
+    runs-on: ubuntu-latest
+    steps:
+      - name: React to comment
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'eyes'
+            });
+
+      - name: Re-trigger security review via label
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.issue.number;
+            const label = 'security-review';
+
+            try {
+              await github.rest.issues.getLabel({ owner, repo, name: label });
+            } catch (e) {
+              await github.rest.issues.createLabel({ owner, repo, name: label, color: 'b60205', description: 'Fuerza una nueva revision de seguridad (Gemini + Semgrep)' });
+            }
+
+            try {
+              await github.rest.issues.removeLabel({ owner, repo, issue_number, name: label });
+            } catch (e) {}
+
+            await github.rest.issues.addLabels({ owner, repo, issue_number, labels: [label] });
